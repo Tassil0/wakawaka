@@ -1,0 +1,15 @@
+# options: https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+BasedOnStyle: LLVM
+UseTab: Never
+IndentWidth: 4
+# Must be 80 characters or less!
+ColumnLimit: 80
+# does (int) x instead of (int)x
+SpaceAfterCStyleCast: true
+# if (x) doStuff()  is not allowed, bad style
+AllowShortIfStatementsOnASingleLine: false
+AlignTrailingComments: true
+SpacesBeforeTrailingComments: 3
+AlignConsecutiveMacros: Consecutive
+# use \n instead of \r\n
+UseCRLF: false
