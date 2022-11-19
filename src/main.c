@@ -21,6 +21,9 @@ int main(int argc, char *argv[]) {
 
     atexit(cleanup);
 
+    int countedFrames = 0;
+    unsigned int startTime = SDL_GetTicks();
+
     while (1) {
         prepareScene();
 
@@ -31,7 +34,14 @@ int main(int argc, char *argv[]) {
 
         presentScene();
 
-        SDL_Delay(16);
+        double avgFPS = (float) countedFrames / (float) (SDL_GetTicks() - startTime) * 1000.0;
+        if (avgFPS > 2000000) {
+            avgFPS = 0;
+        }
+        printf("FPS: %f\n", avgFPS);
+
+        SDL_Delay(6);
+        ++countedFrames;
     }
 
     return 0;
