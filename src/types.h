@@ -31,7 +31,16 @@ typedef struct {
 } PlayerEntity;
 
 typedef struct {
+    int width;
+    int height;
+    int *data;
+    int rectCount;
+    SDL_Rect *rects;
+} Map;
+
+typedef struct {
     PlayerEntity *player;
+    Map *map;
 } Stage;
 
 #endif // WAKAWAKA_TYPES_H

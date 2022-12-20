@@ -23,7 +23,7 @@ file(GLOB SOURCES src/config.h src/types.h src/*.c src/*.h src/*/*.c src/*/*.h)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
 
-add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
+add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} src/map.c src/map.h)
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
 Target_Link_Libraries (
