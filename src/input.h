@@ -5,9 +5,11 @@
 #ifndef WAKAWAKA_INPUT_H
 #define WAKAWAKA_INPUT_H
 
+#include "common.h"
+
 void handleInput(void);
 void handleKeyDown(SDL_KeyboardEvent *event);
 void doKeyUp(SDL_KeyboardEvent *event);
 void handleKeyUp(SDL_KeyboardEvent *event);
 
-#endif //WAKAWAKA_INPUT_H
+#endif   // WAKAWAKA_INPUT_H

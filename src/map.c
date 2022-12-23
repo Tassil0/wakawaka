@@ -4,8 +4,8 @@
 
 #include "map.h"
 
-#define RECT_WIDTH  25
-#define RECT_HEIGHT 25
+#define RECT_WIDTH  TILE_SIZE
+#define RECT_HEIGHT TILE_SIZE
 
 static Map *map_create(int width, int height) {
     Map *map = malloc(sizeof(Map));

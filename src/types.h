@@ -27,6 +27,7 @@ typedef struct {
     float y;
     float dx;
     float dy;
+    SDL_Rect rect;
     SDL_Texture *texture;
 } PlayerEntity;
 
@@ -35,6 +36,7 @@ typedef struct {
     int height;
     int *data;
     int rectCount;
+    SDL_Texture *texture;
     SDL_Rect *rects;
 } Map;
 
@@ -43,4 +45,4 @@ typedef struct {
     Map *map;
 } Stage;
 
-#endif // WAKAWAKA_TYPES_H
+#endif   // WAKAWAKA_TYPES_H
