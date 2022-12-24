@@ -9,6 +9,7 @@
 #define SCREEN_HEIGHT 930
 
 #define PLAYER_SPEED 1
+#define PLAYER_SIZE  30
 
 #define TILE_SIZE 30
 

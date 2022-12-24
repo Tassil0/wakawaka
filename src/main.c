@@ -2,11 +2,11 @@
 // Created by filip on 13.11.22.
 //
 
+#include "main.h"
 #include "common.h"
-#include "render.h"
 #include "init.h"
 #include "input.h"
-#include "main.h"
+#include "render.h"
 #include "stage.h"
 
 App app;
@@ -34,11 +34,12 @@ int main(int argc, char *argv[]) {
 
         presentScene();
 
-        double avgFPS = (float) countedFrames / (float) (SDL_GetTicks() - startTime) * 1000.0;
+        double avgFPS = (float) countedFrames /
+                        (float) (SDL_GetTicks() - startTime) * 1000.0;
         if (avgFPS > 2000000) {
             avgFPS = 0;
         }
-        printf("FPS: %f\n", avgFPS);
+        // printf("FPS: %f\n", avgFPS);
 
         SDL_Delay(6);
         ++countedFrames;

@@ -20,6 +20,9 @@ typedef struct {
     int keyboard[MAX_KEYBOARD_KEYS];
 } App;
 
+// UNDF = UNDEFINED LMAO
+enum directions { LEFT, DOWN, UP, RIGHT, UNDF };
+
 typedef struct {
     int w;
     int h;
@@ -27,6 +30,10 @@ typedef struct {
     float y;
     float dx;
     float dy;
+    enum directions currMove;
+    enum directions nextMove;
+    SDL_Point center;
+    SDL_Point gridPos;
     SDL_Rect rect;
     SDL_Texture *texture;
 } PlayerEntity;
