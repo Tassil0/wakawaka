@@ -31,3 +31,17 @@ void blit(SDL_Texture *texture, int x, int y) {
     SDL_QueryTexture(texture, NULL, NULL, &dest.w, &dest.h);
     SDL_RenderCopy(app.renderer, texture, NULL, &dest);
 }
+
+void renderClip(SDL_Texture *texture, SDL_Point *clip, int x, int y) {
+    SDL_Rect dest = {.x = x, .y = y, .w = PLAYER_SIZE, .h = PLAYER_SIZE};
+    SDL_Rect clipRect = {
+        .x = clip->x, .y = clip->y, .w = PLAYER_SIZE, .h = PLAYER_SIZE};
+    SDL_RenderCopy(app.renderer, texture, &clipRect, &dest);
+}
+
+void renderDiagonals(SDL_Rect *rect) {
+    SDL_RenderDrawLine(app.renderer, rect->x, rect->y, rect->x + rect->w,
+                       rect->y + rect->h);
+    SDL_RenderDrawLine(app.renderer, rect->x, rect->y + rect->h,
+                       rect->x + rect->w, rect->y);
+}
