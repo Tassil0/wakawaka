@@ -23,10 +23,10 @@ file(GLOB SOURCES src/config.h src/types.h src/*.c src/*.h src/*/*.c src/*/*.h)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
 
-add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} src/map.c src/map.h)
+add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} src/map.c src/map.h src/ghosts/ghosts.h src/ghosts/blinky.c src/ghosts/pinky.c src/ghosts/inky.c)
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
-Target_Link_Libraries (
+Target_Link_Libraries(
         ${CMAKE_PROJECT_NAME}
         ${SDL2_LIBRARIES}
         ${SDL2_MIXER_LIBRARIES}
