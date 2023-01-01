@@ -4,6 +4,7 @@
 
 #include "stage.h"
 #include "common.h"
+#include "ghosts/ghosts.h"
 #include "map.h"
 #include "render.h"
 
@@ -16,9 +17,13 @@ static void render(void);
 
 static void initPlayer(void);
 
+static void initGhosts(void);
+
 static void initMap(void);
 
 static void renderPlayer(void);
+
+static void renderGhosts(void);
 
 /*static SDL_bool checkCollisions(void);*/
 
@@ -26,8 +31,17 @@ static void renderMap(void);
 
 static void handlePlayer(void);
 
+static void handleGhosts(void);
+
 static PlayerEntity *player;
 static Map *map;
+static GhostEntity *ghosts[GHOST_NUMBER];
+/**
+ * 0 - blinky
+ * 1 - pinky
+ * 2 - inky
+ * 3 - clyde
+ **/
 
 void initStage(void) {
     app.delegate.logic = logic;
@@ -37,6 +51,9 @@ void initStage(void) {
 
     stage.player = player;
     initPlayer();
+
+    stage.ghosts = &ghosts;
+    initGhosts();
 
     stage.map = map;
     initMap();
@@ -50,9 +67,9 @@ static void initPlayer(void) {
     player->w = PLAYER_SIZE;
     player->h = PLAYER_SIZE;
 
-    // starting player position
-    player->x = PLAYER_START_X * TILE_SIZE - 12;
-    player->y = PLAYER_START_Y * TILE_SIZE - 12;
+    // starting player position (texture basically)
+    player->x = PLAYER_START_X * TILE_SIZE - 7;
+    player->y = PLAYER_START_Y * TILE_SIZE - 7;
 
     // starting player map grid position
     player->gridPos.x = PLAYER_START_X;
@@ -102,6 +119,15 @@ static void initPlayer(void) {
     player->animation.clip = player->animation.leftClips[0];
 }
 
+static void initGhosts(void) {
+    /*for (int i = 0; i < GHOST_NUMBER; i++) {
+        memset(ghosts[i], 0, sizeof(GhostEntity));
+    }*/
+
+    ghosts[0] = initBlinky();
+    ghosts[0]->texture = loadTexture("assets/blinky.png");
+}
+
 static void initMap(void) {
     map = map_load("assets/map");
     map_rectangles(map);
@@ -110,7 +136,10 @@ static void initMap(void) {
     SDL_QueryTexture(map->texture, NULL, NULL, &player->w, &player->h);
 }
 
-static void logic(void) { handlePlayer(); }
+static void logic(void) {
+    handlePlayer();
+    handleGhosts();
+}
 
 static int checkGridPos(int x, int y) { return !map->data[map->width * y + x]; }
 
@@ -136,30 +165,23 @@ static void handlePlayer(void) {
             switch (player->currMove) {
             case LEFT:
                 player->gridPos.x--;
-                /*if (!checkGridPos(player->gridPos.x - 1, player->gridPos.y)) {
-                    player->currMove = UNDF;
-                    player->nextMove = UNDF;
-                }*/
+                ghosts[0]->target.x = player->gridPos.x + 1;
+                ghosts[0]->target.y = player->gridPos.y;
                 break;
             case DOWN:
                 player->gridPos.y++;
-                /*if (!checkGridPos(player->gridPos.x, player->gridPos.y + 1)) {
-                    player->currMove = UNDF;
-                    player->nextMove = UNDF;
-                }*/
+                ghosts[0]->target.x = player->gridPos.x;
+                ghosts[0]->target.y = player->gridPos.y - 1;
                 break;
             case UP:
                 player->gridPos.y--;
-                /* if (!checkGridPos(player->gridPos.x, player->gridPos.y - 1))
-                 { player->currMove = UNDF; player->nextMove = UNDF;
-                 }*/
+                ghosts[0]->target.x = player->gridPos.x;
+                ghosts[0]->target.y = player->gridPos.y + 1;
                 break;
             case RIGHT:
                 player->gridPos.x++;
-                /*if (!checkGridPos(player->gridPos.x + 1, player->gridPos.y)) {
-                    player->currMove = UNDF;
-                    player->nextMove = UNDF;
-                }*/
+                ghosts[0]->target.x = player->gridPos.x - 1;
+                ghosts[0]->target.y = player->gridPos.y;
                 break;
             case UNDF:
                 break;
@@ -220,7 +242,7 @@ static void handlePlayer(void) {
             //}
         }
 
-        u32 animationSpeed = SDL_GetTicks() / 100;
+        u32 animationSpeed = stage.ticks / 100;
         u32 idx = animationSpeed % 4;
 
         switch (player->currMove) {
@@ -257,8 +279,158 @@ static void handlePlayer(void) {
         player->currMove = player->nextMove;
     }
 
-    printf("grid position: [ %d, %d ]\n", player->gridPos.x, player->gridPos.y);
+    // printf("grid position: [ %d, %d ]\n", player->gridPos.x,
+    // player->gridPos.y);
 }
+
+// get tiles around (ugly don't look)
+//   2
+// 0 X 3
+//   1
+// yeah not pretty but fuck you
+// TODO: move this somewhere else
+static void getTilesAround(SDL_Point *tiles, SDL_Point target) {
+    tiles[0].x = target.x - 1;
+    tiles[0].y = target.y;
+    tiles[1].x = target.x;
+    tiles[1].y = target.y + 1;
+    tiles[2].x = target.x;
+    tiles[2].y = target.y - 1;
+    tiles[3].x = target.x + 1;
+    tiles[3].y = target.y;
+}
+
+static int getDistance(SDL_Point a, SDL_Point b) {
+    int x = (a.x - b.x) * (a.x - b.x);
+    int y = (a.y - b.y) * (a.y - b.y);
+    return (int) sqrt(x + y);
+}
+
+static enum Directions checkTiles(SDL_Point *tiles, SDL_Point target,
+                                  int turnAround) {
+    int minDist = 100;
+    enum Directions res = UNDF;
+    for (int i = 0; i < 4; i++) {
+        if (i == turnAround) {
+            continue;
+        }
+        int dist = getDistance(tiles[i], target);
+        printf("dist: %d\n", dist);
+        if (checkGridPos(tiles[i].x, tiles[i].y) && minDist >= dist) {
+            printf("i: %d, check: %d\n", i,
+                   checkGridPos(tiles[i].x, tiles[i].y));
+            minDist = dist;
+            res = (enum Directions) i;
+        } /*else if (!checkGridPos(tiles[i].x, tiles[i].y) && !(minDist > dist))
+        { res = UNDF;
+        }*/
+    }
+    if (res == UNDF)
+        printf("you fucked up bro");
+    return res;
+}
+
+static void printTilesAround(SDL_Point *tiles) {
+    for (int i = 0; i < 4; i++) {
+        printf("%d: [%d, %d] ", i, tiles[i].x, tiles[i].y);
+    }
+    printf("\n");
+}
+
+static void handleBlinky(void) {
+    // animation shit
+    u32 animationSpeed = stage.ticks / 100;
+    u32 idx = animationSpeed % 2;
+
+    switch (ghosts[0]->currMove) {
+    case LEFT:
+        ghosts[0]->animation.clip = ghosts[0]->animation.leftClips[idx];
+        // printf("haf");
+        break;
+    case DOWN:
+        ghosts[0]->animation.clip = ghosts[0]->animation.downClips[idx];
+        break;
+    case UP:
+        ghosts[0]->animation.clip = ghosts[0]->animation.upClips[idx];
+        break;
+    case RIGHT:
+        ghosts[0]->animation.clip = ghosts[0]->animation.rightClips[idx];
+        break;
+    case UNDF:
+        break;
+    }
+
+    // decide next big brain move 🧠
+    if ((ghosts[0]->pos.x - (TILE_SIZE / 2)) % TILE_SIZE == 0 &&
+        (ghosts[0]->pos.y - (TILE_SIZE / 2)) % TILE_SIZE == 0) {
+        SDL_Point tilesAround[4];
+        switch (ghosts[0]->currMove) {
+        case LEFT:
+            ghosts[0]->gridPos.x--;
+            getTilesAround(tilesAround, ghosts[0]->gridPos);
+            printf("grid pos: [%d, %d]\n", ghosts[0]->gridPos.x,
+                   ghosts[0]->gridPos.y);
+            printTilesAround(tilesAround);
+            ghosts[0]->currMove = checkTiles(tilesAround, ghosts[0]->target, 3);
+            break;
+        case DOWN:
+            ghosts[0]->gridPos.y++;
+            getTilesAround(tilesAround, ghosts[0]->gridPos);
+            printf("grid pos: [%d, %d]\n", ghosts[0]->gridPos.x,
+                   ghosts[0]->gridPos.y);
+            printTilesAround(tilesAround);
+            ghosts[0]->currMove = checkTiles(tilesAround, ghosts[0]->target, 2);
+            break;
+        case UP:
+            ghosts[0]->gridPos.y--;
+            getTilesAround(tilesAround, ghosts[0]->gridPos);
+            printf("grid pos: [%d, %d]\n", ghosts[0]->gridPos.x,
+                   ghosts[0]->gridPos.y);
+            printTilesAround(tilesAround);
+            ghosts[0]->currMove = checkTiles(tilesAround, ghosts[0]->target, 1);
+            break;
+        case RIGHT:
+            ghosts[0]->gridPos.x++;
+            getTilesAround(tilesAround, ghosts[0]->gridPos);
+            printf("grid pos: [%d, %d]\n", ghosts[0]->gridPos.x,
+                   ghosts[0]->gridPos.y);
+            printTilesAround(tilesAround);
+            ghosts[0]->currMove = checkTiles(tilesAround, ghosts[0]->target, 0);
+            break;
+        case UNDF:
+            // nasrat kkte
+            break;
+        }
+    }
+
+    // move the ghost
+    switch (ghosts[0]->currMove) {
+    case LEFT:
+        ghosts[0]->pos.x -= PLAYER_SPEED;
+        ghosts[0]->texturePos.x -= PLAYER_SPEED;
+        ghosts[0]->hitbox.x -= PLAYER_SPEED;
+        break;
+    case DOWN:
+        ghosts[0]->pos.y += PLAYER_SPEED;
+        ghosts[0]->texturePos.y += PLAYER_SPEED;
+        ghosts[0]->hitbox.y += PLAYER_SPEED;
+        break;
+    case UP:
+        ghosts[0]->pos.y -= PLAYER_SPEED;
+        ghosts[0]->texturePos.y -= PLAYER_SPEED;
+        ghosts[0]->hitbox.y -= PLAYER_SPEED;
+        break;
+    case RIGHT:
+        ghosts[0]->pos.x += PLAYER_SPEED;
+        ghosts[0]->texturePos.x += PLAYER_SPEED;
+        ghosts[0]->hitbox.x += PLAYER_SPEED;
+        break;
+    case UNDF:
+        break;
+    }
+}
+
+static void handleGhosts(void) { handleBlinky(); }
 
 /*static SDL_bool checkCollisions(void) {
     int j = 0;
@@ -277,6 +449,7 @@ static void handlePlayer(void) {
 static void render(void) {
     renderMap();
     renderPlayer();
+    renderGhosts();
 }
 
 static void renderPlayer(void) {
@@ -292,12 +465,34 @@ static void renderPlayer(void) {
     }
 }
 
+static void renderGhosts(void) {
+    renderClip(ghosts[0]->texture, &ghosts[0]->animation.clip,
+               ghosts[0]->texturePos.x, ghosts[0]->texturePos.y);
+    SDL_SetRenderDrawColor(app.renderer, 0, 255, 0, 255);
+    SDL_RenderDrawRect(app.renderer, &ghosts[0]->hitbox);
+    renderDiagonals(&ghosts[0]->hitbox);
+
+    // render target location
+    SDL_Rect target = (SDL_Rect){.x = ghosts[0]->target.x * TILE_SIZE - 1,
+                                 .y = ghosts[0]->target.y * TILE_SIZE - 1,
+                                 .w = TILE_SIZE,
+                                 .h = TILE_SIZE};
+    SDL_RenderDrawRect(app.renderer, &target);
+    renderDiagonals(&target);
+
+    // printf("%d\n", (int) ghosts[0]->currMove);
+    /*for (int i = 0; i < GHOST_NUMBER; i++) {
+        renderClip(ghosts[i]->texture, &ghosts[i]->animation.clip,
+                   ghosts[i]->texturePos.x, ghosts[i]->texturePos.y);
+    }*/
+}
+
 static void renderMap(void) {
     blit(map->texture, 0, 0);
-    /*if (DEBUG) {
+    if (DEBUG) {
         SDL_SetRenderDrawColor(app.renderer, 0, 255, 0, 255);
         for (int i = 0; i < map->rectCount; i++) {
             SDL_RenderDrawRect(app.renderer, &map->rects[i]);
         }
-    }*/
+    }
 }

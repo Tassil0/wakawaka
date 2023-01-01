@@ -11,9 +11,12 @@
 #define SCREEN_HEIGHT 744
 
 #define PLAYER_SPEED   1
-#define PLAYER_SIZE    48
+#define PLAYER_SIZE    40
 #define PLAYER_START_X 13
 #define PLAYER_START_Y 23
+
+#define GHOST_SIZE   40
+#define GHOST_NUMBER 4
 
 #define TILE_SIZE 24
 

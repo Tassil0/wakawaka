@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
     unsigned int startTime = SDL_GetTicks();
 
     while (1) {
+        stage.ticks = SDL_GetTicks();
         prepareScene();
 
         handleInput();
@@ -34,8 +35,9 @@ int main(int argc, char *argv[]) {
 
         presentScene();
 
-        double avgFPS = (float) countedFrames /
-                        (float) (SDL_GetTicks() - startTime) * 1000.0;
+        // TODO: move this
+        double avgFPS =
+            (float) countedFrames / (float) (stage.ticks - startTime) * 1000.0;
         if (avgFPS > 2000000) {
             avgFPS = 0;
         }

@@ -62,6 +62,8 @@ typedef struct {
 } PlayerEntity;
 
 typedef struct {
+    int w;
+    int h;
     SDL_Point pos;
     SDL_Point gridPos;
     SDL_Rect hitbox;
@@ -93,8 +95,10 @@ typedef struct {
 } Map;
 
 typedef struct {
+    u32 ticks;
     PlayerEntity *player;
     Map *map;
+    GhostEntity *(*ghosts)[GHOST_NUMBER];   // TODO: this is retarded
 } Stage;
 
 #endif   // WAKAWAKA_TYPES_H
