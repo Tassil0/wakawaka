@@ -10,8 +10,9 @@ pkg_search_module(SDL2_IMAGE REQUIRED SDL2_image)
 pkg_search_module(SDL2_TTF REQUIRED SDL2_ttf)
 
 add_compile_options(-Wall -Wempty-body -Werror -Wstrict-prototypes -Werror=maybe-uninitialized -Warray-bounds -g -lefence)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
 
-#Add the include directories of the (found) libraries.
+# Add the include directories of the (found) libraries.
 include_directories(
         ${SDL2_INCLUDE_DIRS}
         ${SDL2_MIXER_INCLUDE_DIRS}
@@ -23,7 +24,7 @@ file(GLOB SOURCES src/config.h src/types.h src/*.c src/*.h src/*/*.c src/*/*.h)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
 
-add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} src/map.c src/map.h src/ghosts/ghosts.h src/ghosts/blinky.c src/ghosts/pinky.c)
+add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
 Target_Link_Libraries(
