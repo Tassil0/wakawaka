@@ -200,11 +200,9 @@ static void handlePlayer(void) {
                 break;
             case DOWN:
                 player->gridPos.y++;
-                updateTargets(0, 4);
                 break;
             case UP:
                 player->gridPos.y--;
-                updateTargets(-4, -4);
                 break;
             case RIGHT:
                 player->gridPos.x++;
@@ -221,7 +219,6 @@ static void handlePlayer(void) {
                     player->rect.y = map->portals[0].y * TILE_SIZE + 1;
                     return;
                 }
-                updateTargets(4, 0);
                 break;
             case UNDF:
                 break;
@@ -253,6 +250,7 @@ static void handlePlayer(void) {
                     // player->currMove = UNDF;
                     player->nextMove = UNDF;
                 }
+                updateTargets(0, 4);
                 break;
             case UP:
                 if (checkGridPos(player->gridPos.x, player->gridPos.y - 1)) {
@@ -264,6 +262,7 @@ static void handlePlayer(void) {
                     // player->currMove = UNDF;
                     player->nextMove = UNDF;
                 }
+                updateTargets(-4, -4);
                 break;
             case RIGHT:
                 if (checkGridPos(player->gridPos.x + 1, player->gridPos.y)) {
@@ -275,6 +274,7 @@ static void handlePlayer(void) {
                     // player->currMove = UNDF;
                     player->nextMove = UNDF;
                 }
+                updateTargets(4, 0);
                 break;
             case UNDF:
                 break;
@@ -424,6 +424,8 @@ static void handleGhost(int i) {
                    ghosts[i]->gridPos.y);
             printTilesAround(tilesAround);
             ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 3);
+            if (i == 0)
+                updateInkyTarget(-2, 0);
             break;
         case DOWN:
             ghosts[i]->gridPos.y++;
@@ -432,6 +434,8 @@ static void handleGhost(int i) {
                    ghosts[i]->gridPos.y);
             printTilesAround(tilesAround);
             ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 2);
+            if (i == 0)
+                updateInkyTarget(0, 2);
             break;
         case UP:
             ghosts[i]->gridPos.y--;
@@ -440,6 +444,8 @@ static void handleGhost(int i) {
                    ghosts[i]->gridPos.y);
             printTilesAround(tilesAround);
             ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 1);
+            if (i == 0)
+                updateInkyTarget(-2, -2);
             break;
         case RIGHT:
             ghosts[i]->gridPos.x++;
@@ -462,6 +468,8 @@ static void handleGhost(int i) {
                    ghosts[i]->gridPos.y);
             printTilesAround(tilesAround);
             ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, i);
+            if (i == 0)
+                updateInkyTarget(2, 0);
             break;
         case UNDF:
             // nasrat kkte

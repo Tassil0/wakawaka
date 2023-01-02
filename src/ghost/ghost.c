@@ -102,7 +102,10 @@ void updateTargets(int x, int y) {
     stage.ghosts[0]->target = stage.player->gridPos;
     stage.ghosts[1]->target.x = stage.player->gridPos.x + x;
     stage.ghosts[1]->target.y = stage.player->gridPos.y + y;
-    stage.ghosts[2]->target = findInkyTarget(stage.player->gridPos.x + x / 2,
-                                             stage.player->gridPos.y + y / 2,
-                                             stage.ghosts[0]->gridPos);
+}
+
+void updateInkyTarget(int x, int y) {
+    stage.ghosts[2]->target =
+        findInkyTarget(stage.player->gridPos.x + x, stage.player->gridPos.y + y,
+                       stage.ghosts[0]->gridPos);
 }
