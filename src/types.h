@@ -90,6 +90,8 @@ typedef struct {
     int height;
     int *data;
     int rectCount;
+    SDL_Point portals[2];
+    SDL_Point gate[2];
     SDL_Texture *texture;
     SDL_Rect *rects;
 } Map;
@@ -98,7 +100,7 @@ typedef struct {
     u32 ticks;
     PlayerEntity *player;
     Map *map;
-    GhostEntity *(*ghosts)[GHOST_NUMBER];   // TODO: this is retarded
+    GhostEntity *ghosts[GHOST_NUMBER];
 } Stage;
 
 #endif   // WAKAWAKA_TYPES_H

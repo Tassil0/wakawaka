@@ -45,3 +45,20 @@ void renderDiagonals(SDL_Rect *rect) {
     SDL_RenderDrawLine(app.renderer, rect->x, rect->y + rect->h,
                        rect->x + rect->w, rect->y);
 }
+
+void renderRectDiagonals(SDL_Rect *rect) {
+    SDL_RenderDrawRect(app.renderer, rect);
+    renderDiagonals(rect);
+}
+
+void setColor(u8 r, u8 g, u8 b, u8 a) {
+    SDL_SetRenderDrawColor(app.renderer, r, g, b, a);
+}
+
+void renderGridRect(SDL_Point gridPos) {
+    SDL_Rect target = (SDL_Rect){.x = gridPos.x * TILE_SIZE - 1,
+                                 .y = gridPos.y * TILE_SIZE - 1,
+                                 .w = TILE_SIZE,
+                                 .h = TILE_SIZE};
+    renderRectDiagonals(&target);
+}

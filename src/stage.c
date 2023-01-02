@@ -4,9 +4,11 @@
 
 #include "stage.h"
 #include "common.h"
-#include "ghosts/ghost.h"
+#include "ghost/ghost.h"
 #include "map.h"
 #include "render.h"
+
+#define ghosts stage.ghosts
 
 extern App app;
 extern Stage stage;
@@ -17,7 +19,7 @@ static void render(void);
 
 static void initPlayer(void);
 
-static void initGhosts(void);
+/*static void initGhosts(void);*/
 
 static void initMap(void);
 
@@ -35,7 +37,8 @@ static void handleGhosts(void);
 
 static PlayerEntity *player;
 static Map *map;
-static GhostEntity *ghosts[GHOST_NUMBER];
+// static GhostEntity *ghosts[GHOST_NUMBER];
+
 /**
  * 0 - blinky
  * 1 - pinky
@@ -52,7 +55,11 @@ void initStage(void) {
     stage.player = player;
     initPlayer();
 
-    stage.ghosts = &ghosts;
+    // stage.ghosts = ghosts;
+    // 🗿
+    /*for (int i = 0; i < GHOST_NUMBER; i++) {
+        stage.ghosts[i] = ghosts[i];
+    }*/
     initGhosts();
 
     stage.map = map;
@@ -119,14 +126,14 @@ static void initPlayer(void) {
     player->animation.clip = player->animation.leftClips[0];
 }
 
-static void initGhosts(void) {
-    /*for (int i = 0; i < GHOST_NUMBER; i++) {
+/*static void initGhosts(void) {
+    for (int i = 0; i < GHOST_NUMBER; i++) {
         memset(ghosts[i], 0, sizeof(GhostEntity));
-    }*/
+    }
 
     ghosts[0] = initBlinky();
     ghosts[0]->texture = loadTexture("assets/blinky.png");
-}
+}*/
 
 static void initMap(void) {
     map = map_load("assets/map");
@@ -165,23 +172,19 @@ static void handlePlayer(void) {
             switch (player->currMove) {
             case LEFT:
                 player->gridPos.x--;
-                ghosts[0]->target.x = player->gridPos.x + 1;
-                ghosts[0]->target.y = player->gridPos.y;
+                updateTargets(-4, 0);
                 break;
             case DOWN:
                 player->gridPos.y++;
-                ghosts[0]->target.x = player->gridPos.x;
-                ghosts[0]->target.y = player->gridPos.y - 1;
+                updateTargets(0, 4);
                 break;
             case UP:
                 player->gridPos.y--;
-                ghosts[0]->target.x = player->gridPos.x;
-                ghosts[0]->target.y = player->gridPos.y + 1;
+                updateTargets(-4, -4);
                 break;
             case RIGHT:
                 player->gridPos.x++;
-                ghosts[0]->target.x = player->gridPos.x - 1;
-                ghosts[0]->target.y = player->gridPos.y;
+                updateTargets(4, 0);
                 break;
             case UNDF:
                 break;
@@ -321,9 +324,7 @@ static enum Directions checkTiles(SDL_Point *tiles, SDL_Point target,
                    checkGridPos(tiles[i].x, tiles[i].y));
             minDist = dist;
             res = (enum Directions) i;
-        } /*else if (!checkGridPos(tiles[i].x, tiles[i].y) && !(minDist > dist))
-        { res = UNDF;
-        }*/
+        }
     }
     if (res == UNDF)
         printf("you fucked up bro");
@@ -462,37 +463,31 @@ static void renderPlayer(void) {
         // SDL_RenderDrawPoint(app.renderer, player->center.x,
         // player->center.y);
         renderDiagonals(&player->rect);
+        // TODO: CREATE CIRCLE :)
     }
 }
 
 static void renderGhosts(void) {
-    renderClip(ghosts[0]->texture, &ghosts[0]->animation.clip,
-               ghosts[0]->texturePos.x, ghosts[0]->texturePos.y);
-    SDL_SetRenderDrawColor(app.renderer, 0, 255, 0, 255);
-    SDL_RenderDrawRect(app.renderer, &ghosts[0]->hitbox);
-    renderDiagonals(&ghosts[0]->hitbox);
-
-    // render target location
-    SDL_Rect target = (SDL_Rect){.x = ghosts[0]->target.x * TILE_SIZE - 1,
-                                 .y = ghosts[0]->target.y * TILE_SIZE - 1,
-                                 .w = TILE_SIZE,
-                                 .h = TILE_SIZE};
-    SDL_RenderDrawRect(app.renderer, &target);
-    renderDiagonals(&target);
-
-    // printf("%d\n", (int) ghosts[0]->currMove);
-    /*for (int i = 0; i < GHOST_NUMBER; i++) {
+    setColor(BLUE, 255);
+    for (int i = 0; i < GHOST_NUMBER; i++) {
         renderClip(ghosts[i]->texture, &ghosts[i]->animation.clip,
                    ghosts[i]->texturePos.x, ghosts[i]->texturePos.y);
-    }*/
+        renderRectDiagonals(&ghosts[i]->hitbox);
+    }
+    setColor(RED, 255);
+    renderGridRect(ghosts[0]->target);
+    setColor(PINK, 255);
+    renderGridRect(ghosts[1]->target);
+    setColor(TEAL, 255);
+    renderGridRect(ghosts[2]->target);
 }
 
 static void renderMap(void) {
     blit(map->texture, 0, 0);
-    /*if (DEBUG) {
+    if (DEBUG) {
         SDL_SetRenderDrawColor(app.renderer, 0, 255, 0, 255);
         for (int i = 0; i < map->rectCount; i++) {
             SDL_RenderDrawRect(app.renderer, &map->rects[i]);
         }
-    }*/
+    }
 }

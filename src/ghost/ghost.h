@@ -7,7 +7,8 @@
 
 #include "../types.h"
 
-GhostEntity *initBlinky(void);
-/*void handleBlinky(void);*/
+void initGhosts(void);
+void destroyGhost(void);
+void updateTargets(int x, int y);
 
 #endif   // WAKAWAKA_GHOST_H
