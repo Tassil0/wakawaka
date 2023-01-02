@@ -9,5 +9,6 @@
 
 Map *map_load(char *filename);
 void map_rectangles(Map *map);
+bool cmpPoints(SDL_Point a, SDL_Point b);
 
 #endif   // WAKAWAKA_MAP_H

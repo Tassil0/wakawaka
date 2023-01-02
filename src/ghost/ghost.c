@@ -14,8 +14,8 @@
 
 extern Stage stage;
 
-static int allStartX[4] = {10, 10, 12, 13};
-static int allStartY[4] = {20, 20, 20, 20};
+static int allStartX[4] = {13, 10, 12, 13};
+static int allStartY[4] = {11, 20, 20, 20};
 static const char *textures[4] = {
     "assets/blinky.png",
     "assets/pinky.png",
