@@ -4,7 +4,7 @@
 
 #include "stage.h"
 #include "common.h"
-#include "ghosts/ghosts.h"
+#include "ghosts/ghost.h"
 #include "map.h"
 #include "render.h"
 
@@ -489,10 +489,10 @@ static void renderGhosts(void) {
 
 static void renderMap(void) {
     blit(map->texture, 0, 0);
-    if (DEBUG) {
+    /*if (DEBUG) {
         SDL_SetRenderDrawColor(app.renderer, 0, 255, 0, 255);
         for (int i = 0; i < map->rectCount; i++) {
             SDL_RenderDrawRect(app.renderer, &map->rects[i]);
         }
-    }
+    }*/
 }

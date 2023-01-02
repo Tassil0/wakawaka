@@ -2,7 +2,7 @@
 // Created by tassilo on 12/29/22.
 //
 
-#include "ghosts.h"
+#include "ghost.h"
 
 // starting position on grid
 #define START_X 10   // 13
