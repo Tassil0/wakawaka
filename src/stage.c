@@ -64,6 +64,8 @@ void initStage(void) {
 
     stage.map = map;
     initMap();
+    stage.score = 0;
+    stage.powerPointTexture = loadTexture("assets/power_point.png");
 }
 
 static void initPlayer(void) {
@@ -76,24 +78,24 @@ static void initPlayer(void) {
 
     // starting player position (texture basically)
     player->x = PLAYER_START_X * TILE_SIZE - 7;
-    player->y = PLAYER_START_Y * TILE_SIZE - 7;
+    player->y = OFFSET_TOP + PLAYER_START_Y * TILE_SIZE - 7;
 
     // starting player map grid position
     player->gridPos.x = PLAYER_START_X;
-    player->gridPos.y = PLAYER_START_Y;
+    player->gridPos.y = OFFSET_TOP + PLAYER_START_Y;
 
     player->currMove = UNDF;
     player->nextMove = UNDF;
 
     // starting center player point
-    player->center =
-        (SDL_Point){.x = PLAYER_START_X * TILE_SIZE + TILE_SIZE / 2,
-                    .y = PLAYER_START_Y * TILE_SIZE + TILE_SIZE / 2};
+    player->center = (SDL_Point){
+        .x = PLAYER_START_X * TILE_SIZE + TILE_SIZE / 2,
+        .y = OFFSET_TOP + PLAYER_START_Y * TILE_SIZE + TILE_SIZE / 2};
 
     player->rect = (SDL_Rect){.w = TILE_SIZE,
                               .h = TILE_SIZE,
                               .x = PLAYER_START_X * TILE_SIZE + 1,
-                              .y = PLAYER_START_Y * TILE_SIZE + 1};
+                              .y = OFFSET_TOP + PLAYER_START_Y * TILE_SIZE + 1};
 
     player->texture = loadTexture("assets/player.png");
 
@@ -161,6 +163,17 @@ static int checkGridPos(int x, int y) { return !map->data[map->width * y + x]; }
     player->rect.y = gridPos.y * TILE_SIZE + 1;
 }*/
 
+static void checkPoints(void) {
+    u8 *tile = &map->points[player->gridPos.y * map->width + player->gridPos.x];
+    if (*tile == 1) {
+        stage.score += 10;
+        *tile = 0;
+    } else if (*tile == 2) {
+        stage.score += 50;
+        *tile = 0;
+    }
+}
+
 static void handlePlayer(void) {
     if (app.keyboard[SDL_SCANCODE_UP]) {
         player->nextMove = UP;
@@ -187,13 +200,15 @@ static void handlePlayer(void) {
                 if (cmpPoints(player->gridPos, map->portals[0])) {
                     player->gridPos = map->portals[1];
                     player->x = (map->portals[1].x - 1) * TILE_SIZE - 7;
-                    player->y = map->portals[1].y * TILE_SIZE - 7;
+                    player->y = OFFSET_TOP + map->portals[1].y * TILE_SIZE - 7;
                     player->center.x =
                         (map->portals[1].x - 1) * TILE_SIZE + TILE_SIZE / 2;
-                    player->center.y =
-                        map->portals[1].y * TILE_SIZE + TILE_SIZE / 2;
+                    player->center.y = OFFSET_TOP +
+                                       map->portals[1].y * TILE_SIZE +
+                                       TILE_SIZE / 2;
                     player->rect.x = (map->portals[1].x - 1) * TILE_SIZE + 1;
-                    player->rect.y = map->portals[1].y * TILE_SIZE + 1;
+                    player->rect.y =
+                        OFFSET_TOP + map->portals[1].y * TILE_SIZE + 1;
                     return;
                 }
                 updateTargets(-4, 0);
@@ -210,19 +225,23 @@ static void handlePlayer(void) {
                 if (cmpPoints(player->gridPos, map->portals[1])) {
                     player->gridPos = map->portals[0];
                     player->x = (map->portals[0].x + 1) * TILE_SIZE - 7;
-                    player->y = map->portals[0].y * TILE_SIZE - 7;
+                    player->y = OFFSET_TOP + map->portals[0].y * TILE_SIZE - 7;
                     player->center.x =
                         (map->portals[0].x + 1) * TILE_SIZE + TILE_SIZE / 2;
-                    player->center.y =
-                        map->portals[0].y * TILE_SIZE + TILE_SIZE / 2;
+                    player->center.y = OFFSET_TOP +
+                                       map->portals[0].y * TILE_SIZE +
+                                       TILE_SIZE / 2;
                     player->rect.x = (map->portals[0].x + 1) * TILE_SIZE + 1;
-                    player->rect.y = map->portals[0].y * TILE_SIZE + 1;
+                    player->rect.y =
+                        OFFSET_TOP + map->portals[0].y * TILE_SIZE + 1;
                     return;
                 }
                 break;
             case UNDF:
                 break;
             }
+            //
+            checkPoints();
             // if we want to change direction at nearest TILE center
             // if (player->nextMove != player->currMove) {
             // try changing directioin
@@ -355,10 +374,10 @@ static enum Directions checkTiles(SDL_Point *tiles, SDL_Point target,
             continue;
         }
         int dist = getDistance(tiles[i], target);
-        printf("dist: %d\n", dist);
+        // printf("dist: %d\n", dist);
         if (checkGridPos(tiles[i].x, tiles[i].y) && minDist >= dist) {
-            printf("i: %d, check: %d\n", i,
-                   checkGridPos(tiles[i].x, tiles[i].y));
+            // printf("i: %d, check: %d\n", i,
+            //        checkGridPos(tiles[i].x, tiles[i].y));
             minDist = dist;
             res = (enum Directions) i;
         }
@@ -368,12 +387,12 @@ static enum Directions checkTiles(SDL_Point *tiles, SDL_Point target,
     return res;
 }
 
-static void printTilesAround(SDL_Point *tiles) {
+/*static void printTilesAround(SDL_Point *tiles) {
     for (int i = 0; i < 4; i++) {
         printf("%d: [%d, %d] ", i, tiles[i].x, tiles[i].y);
     }
     printf("\n");
-}
+}*/
 
 static void handleGhost(int i) {
     // animation shit
@@ -412,17 +431,18 @@ static void handleGhost(int i) {
                 ghosts[i]->pos.x =
                     map->portals[1].x * TILE_SIZE + TILE_SIZE / 2 - 1;
                 ghosts[i]->pos.y =
-                    map->portals[1].y * TILE_SIZE + TILE_SIZE / 2;
+                    OFFSET_TOP + map->portals[1].y * TILE_SIZE + TILE_SIZE / 2;
                 ghosts[i]->texturePos.x = map->portals[1].x * TILE_SIZE - 7 - 1;
-                ghosts[i]->texturePos.y = map->portals[1].y * TILE_SIZE - 7;
+                ghosts[i]->texturePos.y =
+                    OFFSET_TOP + map->portals[1].y * TILE_SIZE - 7;
                 ghosts[i]->hitbox.x = ghosts[i]->texturePos.x;
                 ghosts[i]->hitbox.y = ghosts[i]->texturePos.y;
                 return;
             }
             getTilesAround(tilesAround, ghosts[i]->gridPos);
-            printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
-                   ghosts[i]->gridPos.y);
-            printTilesAround(tilesAround);
+            // printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
+            //        ghosts[i]->gridPos.y);
+            // printTilesAround(tilesAround);
             ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 3);
             if (i == 0)
                 updateInkyTarget(-2, 0);
@@ -430,9 +450,9 @@ static void handleGhost(int i) {
         case DOWN:
             ghosts[i]->gridPos.y++;
             getTilesAround(tilesAround, ghosts[i]->gridPos);
-            printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
-                   ghosts[i]->gridPos.y);
-            printTilesAround(tilesAround);
+            // printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
+            //        ghosts[i]->gridPos.y);
+            // printTilesAround(tilesAround);
             ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 2);
             if (i == 0)
                 updateInkyTarget(0, 2);
@@ -440,9 +460,9 @@ static void handleGhost(int i) {
         case UP:
             ghosts[i]->gridPos.y--;
             getTilesAround(tilesAround, ghosts[i]->gridPos);
-            printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
-                   ghosts[i]->gridPos.y);
-            printTilesAround(tilesAround);
+            // printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
+            //        ghosts[i]->gridPos.y);
+            // printTilesAround(tilesAround);
             ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 1);
             if (i == 0)
                 updateInkyTarget(-2, -2);
@@ -456,17 +476,18 @@ static void handleGhost(int i) {
                 ghosts[i]->pos.x =
                     map->portals[0].x * TILE_SIZE + TILE_SIZE / 2 + 1;
                 ghosts[i]->pos.y =
-                    map->portals[0].y * TILE_SIZE + TILE_SIZE / 2;
+                    OFFSET_TOP + map->portals[0].y * TILE_SIZE + TILE_SIZE / 2;
                 ghosts[i]->texturePos.x = map->portals[0].x * TILE_SIZE - 7 + 1;
-                ghosts[i]->texturePos.y = map->portals[0].y * TILE_SIZE - 7;
+                ghosts[i]->texturePos.y =
+                    OFFSET_TOP + map->portals[0].y * TILE_SIZE - 7;
                 ghosts[i]->hitbox.x = ghosts[i]->texturePos.x;
                 ghosts[i]->hitbox.y = ghosts[i]->texturePos.y;
                 return;
             }
             getTilesAround(tilesAround, ghosts[i]->gridPos);
-            printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
-                   ghosts[i]->gridPos.y);
-            printTilesAround(tilesAround);
+            // printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
+            //        ghosts[i]->gridPos.y);
+            // printTilesAround(tilesAround);
             ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, i);
             if (i == 0)
                 updateInkyTarget(2, 0);
@@ -532,6 +553,7 @@ static void render(void) {
 
 static void renderPlayer(void) {
     renderClip(player->texture, &player->animation.clip, player->x, player->y);
+    printf("score: %d\n", stage.score);
     if (DEBUG) {
         setColor(250, 0, 0, 255);
         // renderGridRect(player->gridPos);
@@ -557,8 +579,21 @@ static void renderGhosts(void) {
     renderGridRect(ghosts[2]->target);
 }
 
+static void renderGamePoints(void) {
+    for (int row = 0; row < map->height; row++) {
+        for (int col = 0; col < map->width; col++) {
+            u8 *tile = &map->points[row * map->width + col];
+            if (*tile == 1)
+                renderGamePoint(col, row);
+            else if (*tile == 2)
+                renderPowerPoint(stage.powerPointTexture, col, row);
+        }
+    }
+}
+
 static void renderMap(void) {
-    blit(map->texture, 0, 0);
+    blit(map->texture, 0, OFFSET_TOP);
+    renderGamePoints();
     /*if (DEBUG) {
         SDL_SetRenderDrawColor(app.renderer, 0, 255, 0, 255);
         for (int i = 0; i < map->rectCount; i++) {

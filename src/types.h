@@ -89,6 +89,7 @@ typedef struct {
     int width;
     int height;
     int *data;
+    u8 *points;
     int rectCount;
     SDL_Point portals[2];
     SDL_Point gate[2];
@@ -101,6 +102,8 @@ typedef struct {
     PlayerEntity *player;
     Map *map;
     GhostEntity *ghosts[GHOST_NUMBER];
+    int score;
+    SDL_Texture *powerPointTexture;
 } Stage;
 
 #endif   // WAKAWAKA_TYPES_H

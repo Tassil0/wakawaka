@@ -16,5 +16,7 @@ void renderDiagonals(SDL_Rect *rect);
 void setColor(u8 r, u8 g, u8 b, u8 a);
 void renderRectDiagonals(SDL_Rect *rect);
 void renderGridRect(SDL_Point gridPos);
+void renderGamePoint(int x, int y);
+void renderPowerPoint(SDL_Texture *texture, int x, int y);
 
 #endif   // WAKAWAKA_RENDER_H

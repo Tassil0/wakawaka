@@ -13,6 +13,7 @@ static Map *map_create(int width, int height) {
     map->height = height;
     map->rectCount = 0;
     map->data = (int *) malloc(width * height * sizeof(int));
+    map->points = (u8 *) malloc(width * height * sizeof(u8));
     map->portals[0] = (SDL_Point){.x = 1, .y = 14};
     map->portals[1] = (SDL_Point){.x = 26, .y = 14};
     map->gate[0] = (SDL_Point){.x = 13, .y = 12};
@@ -20,14 +21,38 @@ static Map *map_create(int width, int height) {
     return map;
 }
 
-Map *map_load(char *filename) {
-    FILE *f = fopen(filename, "rt");
+static void checkFile(FILE *f, char *filename) {
     if (f == NULL) {
         // free(f); TODO: WTF??
-        SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Could not open map: %s",
+        SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Could not open file: %s",
                         filename);
         exit(1);
     }
+}
+
+static void loadPoints(u8 *points, int w, int h) {
+    char *filename = "assets/map_points";
+    FILE *f = fopen(filename, "rt");
+    checkFile(f, filename);
+
+    char buffer[256];
+    for (int row = 0; row < h; row++) {
+        fgets(buffer, sizeof(buffer), f);
+        buffer[strcspn(buffer, "\n")] = 0;
+        int col = 0;
+        for (char *tile = strtok(buffer, " "); tile != NULL;
+             tile = strtok(NULL, " ")) {
+            u8 tileVal = atoi(tile);
+            points[row * w + col] = tileVal;
+            col++;
+        }
+    }
+    fclose(f);
+}
+
+Map *map_load(char *filename) {
+    FILE *f = fopen(filename, "rt");
+    checkFile(f, filename);
 
     char buffer[256];
     fgets(buffer, sizeof(buffer), f);
@@ -50,6 +75,8 @@ Map *map_load(char *filename) {
         }
     }
     fclose(f);
+
+    loadPoints(map->points, width, height);
     return map;
 }
 

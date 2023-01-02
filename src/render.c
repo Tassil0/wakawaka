@@ -57,8 +57,25 @@ void setColor(u8 r, u8 g, u8 b, u8 a) {
 
 void renderGridRect(SDL_Point gridPos) {
     SDL_Rect target = (SDL_Rect){.x = gridPos.x * TILE_SIZE - 1,
-                                 .y = gridPos.y * TILE_SIZE - 1,
+                                 .y = OFFSET_TOP + gridPos.y * TILE_SIZE - 1,
                                  .w = TILE_SIZE,
                                  .h = TILE_SIZE};
     renderRectDiagonals(&target);
+}
+
+void renderGamePoint(int x, int y) {
+    setColor(POINT_COLOR, 255);
+    SDL_Rect point = (SDL_Rect){.x = x * TILE_SIZE + TILE_SIZE / 2,
+                                .y = OFFSET_TOP + y * TILE_SIZE + TILE_SIZE / 2,
+                                .w = 5,
+                                .h = 5};
+    SDL_RenderFillRect(app.renderer, &point);
+}
+
+void renderPowerPoint(SDL_Texture *texture, int x, int y) {
+    SDL_Rect dest = (SDL_Rect){.x = x * TILE_SIZE + 5,
+                               .y = OFFSET_TOP + y * TILE_SIZE + 5,
+                               .w = 20,
+                               .h = 20};
+    SDL_RenderCopy(app.renderer, texture, NULL, &dest);
 }

@@ -8,7 +8,8 @@
 #define DEBUG 1
 
 #define SCREEN_WIDTH  672
-#define SCREEN_HEIGHT 744
+#define SCREEN_HEIGHT 894
+#define OFFSET_TOP    90
 
 #define PLAYER_SPEED   1
 #define PLAYER_SIZE    40

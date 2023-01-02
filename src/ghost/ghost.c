@@ -42,7 +42,7 @@ static GhostEntity *initGhost(int startX, int startY, const char *texture) {
 
     // TODO: center pos?
     ghost->pos.x = startX * TILE_SIZE + TILE_SIZE / 2 - 1;
-    ghost->pos.y = startY * TILE_SIZE + TILE_SIZE / 2;
+    ghost->pos.y = OFFSET_TOP + startY * TILE_SIZE + TILE_SIZE / 2;
 
     ghost->gridPos.x = startX;
     ghost->gridPos.y = startY;
@@ -55,7 +55,7 @@ static GhostEntity *initGhost(int startX, int startY, const char *texture) {
     ghost->texture = loadTexture(texture);
 
     ghost->texturePos.x = startX * TILE_SIZE - 7 - 1;
-    ghost->texturePos.y = startY * TILE_SIZE - 7;
+    ghost->texturePos.y = OFFSET_TOP + startY * TILE_SIZE - 7;
 
     ghost->hitbox = (SDL_Rect){.x = ghost->texturePos.x,
                                .y = ghost->texturePos.y,
