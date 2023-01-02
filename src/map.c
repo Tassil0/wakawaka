@@ -13,6 +13,10 @@ static Map *map_create(int width, int height) {
     map->height = height;
     map->rectCount = 0;
     map->data = (int *) malloc(width * height * sizeof(int));
+    map->portals[0] = (SDL_Point){.x = 1, .y = 15};
+    map->portals[1] = (SDL_Point){.x = 27, .y = 15};
+    map->gate[0] = (SDL_Point){.x = 13, .y = 14};
+    map->gate[1] = (SDL_Point){.x = 14, .y = 14};
     return map;
 }
 
