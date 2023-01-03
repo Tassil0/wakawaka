@@ -83,7 +83,7 @@ Map *map_load(char *filename) {
 void map_rectangles(Map *map) {
     map->rects = malloc(map->rectCount * sizeof(SDL_Rect));
     int x = 0;
-    int y = 0;
+    int y = OFFSET_TOP;
     int i = 0;
     for (int row = 0; row < map->height; row++) {
         for (int col = 0; col < map->width; col++) {

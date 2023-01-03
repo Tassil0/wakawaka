@@ -82,7 +82,7 @@ static void initPlayer(void) {
 
     // starting player map grid position
     player->gridPos.x = PLAYER_START_X;
-    player->gridPos.y = OFFSET_TOP + PLAYER_START_Y;
+    player->gridPos.y = PLAYER_START_Y;
 
     player->currMove = UNDF;
     player->nextMove = UNDF;
@@ -190,7 +190,8 @@ static void handlePlayer(void) {
     if (player->nextMove != UNDF) {
         // plati i pro první tile
         if ((player->center.x - (TILE_SIZE / 2)) % TILE_SIZE == 0 &&
-            (player->center.y - (TILE_SIZE / 2)) % TILE_SIZE == 0) {
+            ((player->center.y - OFFSET_TOP) - (TILE_SIZE / 2)) % TILE_SIZE ==
+                0) {
             // we are in center of TILE, we can try change direction
             // first we must count the grid move we just made
             switch (player->currMove) {
@@ -215,9 +216,11 @@ static void handlePlayer(void) {
                 break;
             case DOWN:
                 player->gridPos.y++;
+                updateTargets(0, 4);
                 break;
             case UP:
                 player->gridPos.y--;
+                updateTargets(-4, -4);
                 break;
             case RIGHT:
                 player->gridPos.x++;
@@ -236,6 +239,7 @@ static void handlePlayer(void) {
                         OFFSET_TOP + map->portals[0].y * TILE_SIZE + 1;
                     return;
                 }
+                updateTargets(4, 0);
                 break;
             case UNDF:
                 break;
@@ -269,7 +273,6 @@ static void handlePlayer(void) {
                     // player->currMove = UNDF;
                     player->nextMove = UNDF;
                 }
-                updateTargets(0, 4);
                 break;
             case UP:
                 if (checkGridPos(player->gridPos.x, player->gridPos.y - 1)) {
@@ -281,7 +284,6 @@ static void handlePlayer(void) {
                     // player->currMove = UNDF;
                     player->nextMove = UNDF;
                 }
-                updateTargets(-4, -4);
                 break;
             case RIGHT:
                 if (checkGridPos(player->gridPos.x + 1, player->gridPos.y)) {
@@ -293,7 +295,6 @@ static void handlePlayer(void) {
                     // player->currMove = UNDF;
                     player->nextMove = UNDF;
                 }
-                updateTargets(4, 0);
                 break;
             case UNDF:
                 break;
@@ -419,7 +420,7 @@ static void handleGhost(int i) {
 
     // decide next big brain move 🧠
     if ((ghosts[i]->pos.x - (TILE_SIZE / 2)) % TILE_SIZE == 0 &&
-        (ghosts[i]->pos.y - (TILE_SIZE / 2)) % TILE_SIZE == 0) {
+        ((ghosts[i]->pos.y - OFFSET_TOP) - (TILE_SIZE / 2)) % TILE_SIZE == 0) {
         SDL_Point tilesAround[4];
         switch (ghosts[i]->currMove) {
         case LEFT:
