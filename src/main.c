@@ -45,7 +45,21 @@ int main(int argc, char *argv[]) {
 
         SDL_Delay(6);
         ++countedFrames;
+
+        // TODO: move this
+        // wait for user input
+        SDL_Event event;
+        while (!app.gameStarted) {
+            if (SDL_WaitEvent(&event)) {
+                if (event.type == SDL_KEYDOWN)
+                    app.gameStarted = true;
+            }
+        }
     }
 
     return 0;
 }
+// get tiles around (ugly don't look)
+//   2
+// 0 X 3
+//   1

@@ -33,6 +33,7 @@ typedef struct {
     SDL_Window *window;
     Delegate delegate;
     int keyboard[MAX_KEYBOARD_KEYS];
+    bool gameStarted;
 } App;
 
 // UNDF = UNDEFINED LMAO

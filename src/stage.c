@@ -8,6 +8,7 @@
 #include "map.h"
 #include "render.h"
 #include "text.h"
+#include "util.h"
 
 #define ghosts stage.ghosts
 
@@ -65,7 +66,7 @@ void initStage(void) {
     initPlayer();
 
     initGhosts();
-    stage.ghostState = SCATTER;
+    stage.ghostState = FRIGHT;
 
     stage.map = map;
     initMap();
@@ -150,12 +151,30 @@ static void initMap(void) {
     SDL_QueryTexture(map->texture, NULL, NULL, &player->w, &player->h);
 }
 
+static void checkCollisions(void) {
+    for (int i = 0; i < GHOST_NUMBER; i++) {
+        if (SDL_HasIntersection(&ghosts[i]->hitbox, &player->rect)) {
+            if (stage.ghostState == FRIGHT)
+                ghosts[i]->eaten = true;
+            else
+                printf("you dead man\n");
+            // pacman dead
+        }
+    }
+}
+
 static void logic(void) {
     handlePlayer();
     handleGhosts();
+    checkCollisions();
 }
 
 static int checkGridPos(int x, int y) { return !map->data[map->width * y + x]; }
+
+static bool checkTileCenter(SDL_Point *entityCenter) {
+    return (entityCenter->x - (TILE_SIZE / 2)) % TILE_SIZE == 0 &&
+           ((entityCenter->y - OFFSET_TOP) - (TILE_SIZE / 2)) % TILE_SIZE == 0;
+}
 
 static void checkPoints(void) {
     u8 *tile = &map->points[player->gridPos.y * map->width + player->gridPos.x];
@@ -183,9 +202,7 @@ static void handlePlayer(void) {
 
     if (player->nextMove != UNDF) {
         // plati i pro první tile
-        if ((player->center.x - (TILE_SIZE / 2)) % TILE_SIZE == 0 &&
-            ((player->center.y - OFFSET_TOP) - (TILE_SIZE / 2)) % TILE_SIZE ==
-                0) {
+        if (checkTileCenter(&player->center)) {
             // we are in center of TILE, we can try change direction
             // first we must count the grid move we just made
             switch (player->currMove) {
@@ -337,9 +354,6 @@ static void handlePlayer(void) {
     if (player->currMove == UNDF) {
         player->currMove = player->nextMove;
     }
-
-    // printf("grid position: [ %d, %d ]\n", player->gridPos.x,
-    // player->gridPos.y);
 }
 
 // get tiles around (ugly don't look)
@@ -374,25 +388,138 @@ static enum Directions checkTiles(SDL_Point *tiles, SDL_Point target,
             continue;
         }
         int dist = getDistance(tiles[i], target);
-        // printf("dist: %d\n", dist);
         if (checkGridPos(tiles[i].x, tiles[i].y) && minDist >= dist) {
-            // printf("i: %d, check: %d\n", i,
-            //        checkGridPos(tiles[i].x, tiles[i].y));
             minDist = dist;
             res = (enum Directions) i;
         }
     }
-    if (res == UNDF)
-        printf("you fucked up bro");
     return res;
 }
 
-/*static void printTilesAround(SDL_Point *tiles) {
-    for (int i = 0; i < 4; i++) {
-        printf("%d: [%d, %d] ", i, tiles[i].x, tiles[i].y);
+// left ghost portal
+static void doLeftPortalG(int i) {
+    ghosts[i]->gridPos = map->portals[1];
+    // -1 aby se nepřičetl grid pos :)
+    ghosts[i]->pos.x = map->portals[1].x * TILE_SIZE + TILE_SIZE / 2 - 1;
+    ghosts[i]->pos.y =
+        OFFSET_TOP + map->portals[1].y * TILE_SIZE + TILE_SIZE / 2;
+    ghosts[i]->texturePos.x = map->portals[1].x * TILE_SIZE - 7 - 1;
+    ghosts[i]->texturePos.y = OFFSET_TOP + map->portals[1].y * TILE_SIZE - 7;
+    ghosts[i]->hitbox.x = ghosts[i]->texturePos.x;
+    ghosts[i]->hitbox.y = ghosts[i]->texturePos.y;
+}
+
+static void doRightPortalG(int i) {
+    ghosts[i]->gridPos = map->portals[0];
+    // +1 aby se nepřičetl grid pos :)
+    ghosts[i]->pos.x = map->portals[0].x * TILE_SIZE + TILE_SIZE / 2 + 1;
+    ghosts[i]->pos.y =
+        OFFSET_TOP + map->portals[0].y * TILE_SIZE + TILE_SIZE / 2;
+    ghosts[i]->texturePos.x = map->portals[0].x * TILE_SIZE - 7 + 1;
+    ghosts[i]->texturePos.y = OFFSET_TOP + map->portals[0].y * TILE_SIZE - 7;
+    ghosts[i]->hitbox.x = ghosts[i]->texturePos.x;
+    ghosts[i]->hitbox.y = ghosts[i]->texturePos.y;
+}
+
+static void chaseTarget(int i) {
+    // decide next big brain move 🧠
+    SDL_Point tilesAround[4];
+    switch (ghosts[i]->currMove) {
+    case LEFT:
+        ghosts[i]->gridPos.x--;
+        // check left portal
+        if (cmpPoints(ghosts[i]->gridPos, map->portals[0])) {
+            doLeftPortalG(i);
+            return;
+        }
+        getTilesAround(tilesAround, ghosts[i]->gridPos);
+        ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 3);
+        if (i == 0)
+            updateInkyTarget(-2, 0);
+        break;
+    case DOWN:
+        ghosts[i]->gridPos.y++;
+        getTilesAround(tilesAround, ghosts[i]->gridPos);
+        ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 2);
+        if (i == 0)
+            updateInkyTarget(0, 2);
+        break;
+    case UP:
+        ghosts[i]->gridPos.y--;
+        getTilesAround(tilesAround, ghosts[i]->gridPos);
+        ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 1);
+        if (i == 0)
+            updateInkyTarget(-2, -2);
+        break;
+    case RIGHT:
+        ghosts[i]->gridPos.x++;
+        // check right portal
+        if (cmpPoints(ghosts[i]->gridPos, map->portals[1])) {
+            doRightPortalG(i);
+            return;
+        }
+        getTilesAround(tilesAround, ghosts[i]->gridPos);
+        ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, i);
+        if (i == 0)
+            updateInkyTarget(2, 0);
+        break;
+    case UNDF:
+        break;
     }
-    printf("\n");
-}*/
+}
+
+static enum Directions chooseRngTile(SDL_Point *tiles, int turnAround) {
+    int possibleDirections[3];
+    int j = 0;   // keeping track of possible directions
+    // select possible directions
+    for (int i = 0; i < 4; i++) {
+        if (i == turnAround)
+            continue;
+        if (checkGridPos(tiles[i].x, tiles[i].y)) {
+            possibleDirections[j] = i;
+            j++;
+        }
+    }
+    return (enum Directions) possibleDirections[getRngNum(0, j - 1)];
+}
+
+static void getFrightened(int i) {
+    SDL_Point tilesAround[4];
+    switch (ghosts[i]->currMove) {
+    case LEFT:
+        ghosts[i]->gridPos.x--;
+        // check left portal
+        if (cmpPoints(ghosts[i]->gridPos, map->portals[0])) {
+            doLeftPortalG(i);
+            return;
+        }
+        getTilesAround(tilesAround, ghosts[i]->gridPos);
+        ghosts[i]->currMove = chooseRngTile(tilesAround, 3);
+        break;
+    case DOWN:
+        ghosts[i]->gridPos.y++;
+        getTilesAround(tilesAround, ghosts[i]->gridPos);
+        ghosts[i]->currMove = chooseRngTile(tilesAround, 2);
+        break;
+    case UP:
+        ghosts[i]->gridPos.y--;
+        getTilesAround(tilesAround, ghosts[i]->gridPos);
+        ghosts[i]->currMove = chooseRngTile(tilesAround, 1);
+        break;
+    case RIGHT:
+        ghosts[i]->gridPos.x++;
+        // check right portal
+        if (cmpPoints(ghosts[i]->gridPos, map->portals[1])) {
+            doRightPortalG(i);
+            return;
+        }
+        getTilesAround(tilesAround, ghosts[i]->gridPos);
+        ghosts[i]->currMove = chooseRngTile(tilesAround, 0);
+        break;
+    case UNDF:
+        break;
+    }
+}
 
 static void handleGhost(int i) {
     // animation shit
@@ -417,86 +544,10 @@ static void handleGhost(int i) {
         break;
     }
 
-    // decide next big brain move 🧠
-    if ((ghosts[i]->pos.x - (TILE_SIZE / 2)) % TILE_SIZE == 0 &&
-        ((ghosts[i]->pos.y - OFFSET_TOP) - (TILE_SIZE / 2)) % TILE_SIZE == 0) {
-        SDL_Point tilesAround[4];
-        switch (ghosts[i]->currMove) {
-        case LEFT:
-            ghosts[i]->gridPos.x--;
-            // check left portal
-            if (cmpPoints(ghosts[i]->gridPos, map->portals[0])) {
-                ghosts[i]->gridPos = map->portals[1];
-                // -1 aby se nepřičetl grid pos :)
-                ghosts[i]->pos.x =
-                    map->portals[1].x * TILE_SIZE + TILE_SIZE / 2 - 1;
-                ghosts[i]->pos.y =
-                    OFFSET_TOP + map->portals[1].y * TILE_SIZE + TILE_SIZE / 2;
-                ghosts[i]->texturePos.x = map->portals[1].x * TILE_SIZE - 7 - 1;
-                ghosts[i]->texturePos.y =
-                    OFFSET_TOP + map->portals[1].y * TILE_SIZE - 7;
-                ghosts[i]->hitbox.x = ghosts[i]->texturePos.x;
-                ghosts[i]->hitbox.y = ghosts[i]->texturePos.y;
-                return;
-            }
-            getTilesAround(tilesAround, ghosts[i]->gridPos);
-            // printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
-            //        ghosts[i]->gridPos.y);
-            // printTilesAround(tilesAround);
-            ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 3);
-            if (i == 0)
-                updateInkyTarget(-2, 0);
-            break;
-        case DOWN:
-            ghosts[i]->gridPos.y++;
-            getTilesAround(tilesAround, ghosts[i]->gridPos);
-            // printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
-            //        ghosts[i]->gridPos.y);
-            // printTilesAround(tilesAround);
-            ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 2);
-            if (i == 0)
-                updateInkyTarget(0, 2);
-            break;
-        case UP:
-            ghosts[i]->gridPos.y--;
-            getTilesAround(tilesAround, ghosts[i]->gridPos);
-            // printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
-            //        ghosts[i]->gridPos.y);
-            // printTilesAround(tilesAround);
-            ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 1);
-            if (i == 0)
-                updateInkyTarget(-2, -2);
-            break;
-        case RIGHT:
-            ghosts[i]->gridPos.x++;
-            // check right portal
-            if (cmpPoints(ghosts[i]->gridPos, map->portals[1])) {
-                ghosts[i]->gridPos = map->portals[0];
-                // +1 aby se nepřičetl grid pos :)
-                ghosts[i]->pos.x =
-                    map->portals[0].x * TILE_SIZE + TILE_SIZE / 2 + 1;
-                ghosts[i]->pos.y =
-                    OFFSET_TOP + map->portals[0].y * TILE_SIZE + TILE_SIZE / 2;
-                ghosts[i]->texturePos.x = map->portals[0].x * TILE_SIZE - 7 + 1;
-                ghosts[i]->texturePos.y =
-                    OFFSET_TOP + map->portals[0].y * TILE_SIZE - 7;
-                ghosts[i]->hitbox.x = ghosts[i]->texturePos.x;
-                ghosts[i]->hitbox.y = ghosts[i]->texturePos.y;
-                return;
-            }
-            getTilesAround(tilesAround, ghosts[i]->gridPos);
-            // printf("grid pos: [%d, %d]\n", ghosts[i]->gridPos.x,
-            //        ghosts[i]->gridPos.y);
-            // printTilesAround(tilesAround);
-            ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, i);
-            if (i == 0)
-                updateInkyTarget(2, 0);
-            break;
-        case UNDF:
-            // nasrat kkte
-            break;
-        }
-    }
+    if (stage.ghostState != FRIGHT && checkTileCenter(&ghosts[i]->pos))
+        chaseTarget(i);
+    else if (stage.ghostState == FRIGHT && checkTileCenter(&ghosts[i]->pos))
+        getFrightened(i);
 
     // move the ghost
     switch (ghosts[i]->currMove) {
@@ -554,10 +605,9 @@ static void render(void) {
 
 static void renderPlayer(void) {
     renderClip(player->texture, &player->animation.clip, player->x, player->y);
-    printf("score: %d\n", stage.score);
     if (DEBUG) {
         setColor(0, 255, 0, 255);
-        renderGridRect(player->gridPos);
+        // renderGridRect(player->gridPos);
         renderRectDiagonals(&player->rect);
         // TODO: CREATE CIRCLE :)
     }
@@ -569,11 +619,11 @@ static void renderGhosts(void) {
         if (stage.ghostState == CHASE || stage.ghostState == SCATTER) {
             renderClip(ghosts[i]->texture, &ghosts[i]->animation.clip,
                        ghosts[i]->texturePos.x, ghosts[i]->texturePos.y);
-        } else if (stage.ghostState == FRIGHT) {
-            renderClip(stage.frightenedTexture, &ghosts[i]->animation.clip,
-                       ghosts[i]->texturePos.x, ghosts[i]->texturePos.y);
         } else if (ghosts[i]->eaten) {
             renderClip(stage.eatenTexture, &ghosts[i]->animation.clip,
+                       ghosts[i]->texturePos.x, ghosts[i]->texturePos.y);
+        } else if (stage.ghostState == FRIGHT) {
+            renderClip(stage.frightenedTexture, &ghosts[i]->animation.clip,
                        ghosts[i]->texturePos.x, ghosts[i]->texturePos.y);
         }
         renderRectDiagonals(&ghosts[i]->hitbox);
@@ -589,12 +639,13 @@ static void renderGhosts(void) {
 }
 
 static void renderGamePoints(void) {
+    u32 animationSpeed = stage.ticks / 250;
     for (int row = 0; row < map->height; row++) {
         for (int col = 0; col < map->width; col++) {
             u8 *tile = &map->points[row * map->width + col];
             if (*tile == 1)
                 renderGamePoint(col, row);
-            else if (*tile == 2)
+            else if (*tile == 2 && animationSpeed % 2)
                 renderPowerPoint(stage.powerPointTexture, col, row);
         }
     }
@@ -615,4 +666,7 @@ static void renderHUD(void) {
     renderText((SCREEN_WIDTH / 2) - (5 * 35 / 2), 10, 255, 255, 255, "%s",
                "SCORE");
     renderText(300, 50, 255, 255, 255, "%d", stage.score);
+    if (!app.gameStarted)
+        renderText(SCREEN_WIDTH / 2 - 6 * 35 / 2 + 10, 495, 255, 255, 255, "%s",
+                   "READY!");
 }
