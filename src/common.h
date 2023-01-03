@@ -14,6 +14,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "types.h"
+#include <stdarg.h>
 #include <stdbool.h>
 
 #endif   // WAKAWAKA_COMMON_H

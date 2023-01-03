@@ -23,4 +23,7 @@
 
 #define MAX_KEYBOARD_KEYS 350
 
+#define MAX_LINE_LENGTH 30
+#define GLYPH_SIZE      30
+
 #endif   // WAKAWAKA_CONFIG_H

@@ -79,6 +79,8 @@ static GhostEntity *initGhost(int startX, int startY, const char *texture) {
 
     ghost->animation.clip = ghost->animation.leftClips[0];
 
+    ghost->eaten = false;
+
     return ghost;
 }
 
@@ -102,10 +104,18 @@ void updateTargets(int x, int y) {
     stage.ghosts[0]->target = stage.player->gridPos;
     stage.ghosts[1]->target.x = stage.player->gridPos.x + x;
     stage.ghosts[1]->target.y = stage.player->gridPos.y + y;
+    if (stage.ghostState == SCATTER) {
+        stage.ghosts[0]->target = (SDL_Point){.x = 26, .y = -1};
+        stage.ghosts[1]->target = (SDL_Point){.x = 2, .y = -1};
+        stage.ghosts[2]->target = (SDL_Point){.x = 27, .y = 31};
+        stage.ghosts[3]->target = (SDL_Point){.x = 0, .y = 31};
+    }
 }
 
 void updateInkyTarget(int x, int y) {
-    stage.ghosts[2]->target =
-        findInkyTarget(stage.player->gridPos.x + x, stage.player->gridPos.y + y,
-                       stage.ghosts[0]->gridPos);
+    if (stage.ghostState == CHASE) {
+        stage.ghosts[2]->target = findInkyTarget(stage.player->gridPos.x + x,
+                                                 stage.player->gridPos.y + y,
+                                                 stage.ghosts[0]->gridPos);
+    }
 }

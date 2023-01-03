@@ -7,6 +7,7 @@
 #include "ghost/ghost.h"
 #include "map.h"
 #include "render.h"
+#include "text.h"
 
 #define ghosts stage.ghosts
 
@@ -16,6 +17,8 @@ extern Stage stage;
 static void logic(void);
 
 static void render(void);
+
+static void initUniversalTextures(void);
 
 static void initPlayer(void);
 
@@ -35,9 +38,15 @@ static void handlePlayer(void);
 
 static void handleGhosts(void);
 
+static void renderHUD(void);
+
 static PlayerEntity *player;
 static Map *map;
-// static GhostEntity *ghosts[GHOST_NUMBER];
+// we want pacmam to start centered
+// grid position can't be centered
+// so when he goes left at the start we decrement gridPos.x additionally
+// we don't want that, not elegant but will work
+static bool startMove;
 
 /**
  * 0 - blinky
@@ -55,29 +64,34 @@ void initStage(void) {
     stage.player = player;
     initPlayer();
 
-    // stage.ghosts = ghosts;
-    // 🗿
-    /*for (int i = 0; i < GHOST_NUMBER; i++) {
-        stage.ghosts[i] = ghosts[i];
-    }*/
     initGhosts();
+    stage.ghostState = SCATTER;
 
     stage.map = map;
     initMap();
     stage.score = 0;
+    initUniversalTextures();
+
+    initFonts();
+}
+
+static void initUniversalTextures(void) {
     stage.powerPointTexture = loadTexture("assets/power_point.png");
+    stage.frightenedTexture = loadTexture("assets/fright.png");
+    stage.eatenTexture = loadTexture("assets/eaten.png");
 }
 
 static void initPlayer(void) {
     player = malloc(sizeof(PlayerEntity));
     memset(player, 0, sizeof(PlayerEntity));
     stage.player = player;
+    startMove = true;
 
     player->w = PLAYER_SIZE;
     player->h = PLAYER_SIZE;
 
     // starting player position (texture basically)
-    player->x = PLAYER_START_X * TILE_SIZE - 7;
+    player->x = PLAYER_START_X * TILE_SIZE + 4;
     player->y = OFFSET_TOP + PLAYER_START_Y * TILE_SIZE - 7;
 
     // starting player map grid position
@@ -88,13 +102,13 @@ static void initPlayer(void) {
     player->nextMove = UNDF;
 
     // starting center player point
-    player->center = (SDL_Point){
-        .x = PLAYER_START_X * TILE_SIZE + TILE_SIZE / 2,
-        .y = OFFSET_TOP + PLAYER_START_Y * TILE_SIZE + TILE_SIZE / 2};
+    player->center = (SDL_Point){.x = PLAYER_START_X * TILE_SIZE,
+                                 .y = OFFSET_TOP + PLAYER_START_Y * TILE_SIZE +
+                                      TILE_SIZE / 2};
 
     player->rect = (SDL_Rect){.w = TILE_SIZE,
                               .h = TILE_SIZE,
-                              .x = PLAYER_START_X * TILE_SIZE + 1,
+                              .x = PLAYER_START_X * TILE_SIZE + TILE_SIZE / 2,
                               .y = OFFSET_TOP + PLAYER_START_Y * TILE_SIZE + 1};
 
     player->texture = loadTexture("assets/player.png");
@@ -128,15 +142,6 @@ static void initPlayer(void) {
     player->animation.clip = player->animation.leftClips[0];
 }
 
-/*static void initGhosts(void) {
-    for (int i = 0; i < GHOST_NUMBER; i++) {
-        memset(ghosts[i], 0, sizeof(GhostEntity));
-    }
-
-    ghosts[0] = initBlinky();
-    ghosts[0]->texture = loadTexture("assets/blinky.png");
-}*/
-
 static void initMap(void) {
     map = map_load("assets/map");
     map_rectangles(map);
@@ -151,17 +156,6 @@ static void logic(void) {
 }
 
 static int checkGridPos(int x, int y) { return !map->data[map->width * y + x]; }
-
-/* no idea why this doesn't work as intended
- * static void placePlayer(SDL_Point gridPos) {
-    player->gridPos = gridPos;
-    player->x = gridPos.x * TILE_SIZE - 7;
-    player->y = gridPos.y * TILE_SIZE - 7;
-    player->center.x = gridPos.x * TILE_SIZE + TILE_SIZE / 2;
-    player->center.y = gridPos.y * TILE_SIZE + TILE_SIZE / 2;
-    player->rect.x = gridPos.x * TILE_SIZE + 1;
-    player->rect.y = gridPos.y * TILE_SIZE + 1;
-}*/
 
 static void checkPoints(void) {
     u8 *tile = &map->points[player->gridPos.y * map->width + player->gridPos.x];
@@ -196,7 +190,10 @@ static void handlePlayer(void) {
             // first we must count the grid move we just made
             switch (player->currMove) {
             case LEFT:
-                player->gridPos.x--;
+                if (!startMove)
+                    player->gridPos.x--;
+                else
+                    startMove = false;
                 // check left portal
                 if (cmpPoints(player->gridPos, map->portals[0])) {
                     player->gridPos = map->portals[1];
@@ -223,6 +220,8 @@ static void handlePlayer(void) {
                 updateTargets(-4, -4);
                 break;
             case RIGHT:
+                if (startMove)
+                    startMove = false;
                 player->gridPos.x++;
                 // check right portal
                 if (cmpPoints(player->gridPos, map->portals[1])) {
@@ -548,6 +547,7 @@ static void handleGhosts(void) {
 
 static void render(void) {
     renderMap();
+    renderHUD();
     renderPlayer();
     renderGhosts();
 }
@@ -556,11 +556,9 @@ static void renderPlayer(void) {
     renderClip(player->texture, &player->animation.clip, player->x, player->y);
     printf("score: %d\n", stage.score);
     if (DEBUG) {
-        setColor(250, 0, 0, 255);
-        // renderGridRect(player->gridPos);
+        setColor(0, 255, 0, 255);
+        renderGridRect(player->gridPos);
         renderRectDiagonals(&player->rect);
-        setColor(BLUE, 255);
-        renderGridRect(map->portals[1]);
         // TODO: CREATE CIRCLE :)
     }
 }
@@ -568,8 +566,16 @@ static void renderPlayer(void) {
 static void renderGhosts(void) {
     setColor(BLUE, 255);
     for (int i = 0; i < GHOST_NUMBER; i++) {
-        renderClip(ghosts[i]->texture, &ghosts[i]->animation.clip,
-                   ghosts[i]->texturePos.x, ghosts[i]->texturePos.y);
+        if (stage.ghostState == CHASE || stage.ghostState == SCATTER) {
+            renderClip(ghosts[i]->texture, &ghosts[i]->animation.clip,
+                       ghosts[i]->texturePos.x, ghosts[i]->texturePos.y);
+        } else if (stage.ghostState == FRIGHT) {
+            renderClip(stage.frightenedTexture, &ghosts[i]->animation.clip,
+                       ghosts[i]->texturePos.x, ghosts[i]->texturePos.y);
+        } else if (ghosts[i]->eaten) {
+            renderClip(stage.eatenTexture, &ghosts[i]->animation.clip,
+                       ghosts[i]->texturePos.x, ghosts[i]->texturePos.y);
+        }
         renderRectDiagonals(&ghosts[i]->hitbox);
     }
     setColor(RED, 255);
@@ -578,6 +584,8 @@ static void renderGhosts(void) {
     renderGridRect(ghosts[1]->target);
     setColor(TEAL, 255);
     renderGridRect(ghosts[2]->target);
+    setColor(PEACH, 255);
+    renderGridRect(ghosts[3]->target);
 }
 
 static void renderGamePoints(void) {
@@ -601,4 +609,10 @@ static void renderMap(void) {
             SDL_RenderDrawRect(app.renderer, &map->rects[i]);
         }
     }*/
+}
+
+static void renderHUD(void) {
+    renderText((SCREEN_WIDTH / 2) - (5 * 35 / 2), 10, 255, 255, 255, "%s",
+               "SCORE");
+    renderText(300, 50, 255, 255, 255, "%d", stage.score);
 }

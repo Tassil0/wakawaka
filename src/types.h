@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include <inttypes.h>
+#include <stdbool.h>
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -61,6 +62,8 @@ typedef struct {
     Animation animation;
 } PlayerEntity;
 
+typedef enum { FRIGHT, CHASE, SCATTER } GhostState;
+
 typedef struct {
     int w;
     int h;
@@ -69,21 +72,11 @@ typedef struct {
     SDL_Rect hitbox;
     enum Directions currMove;
     SDL_Point target;
+    bool eaten;
     SDL_Texture *texture;
     SDL_Point texturePos;
     Animation animation;
 } GhostEntity;
-
-/*typedef enum { Frightened, Chase, Scatter } GhostSates;
-
-typedef struct GhostState *GhostStatePtr;
-typedef void (*EventStartFunc)(GhostStatePtr);
-typedef void (*EventStopFunc)(GhostStatePtr);
-
-struct GhostState {
-    EventStartFunc start;
-    EventStopFunc stop;
-};*/
 
 typedef struct {
     int width;
@@ -104,6 +97,10 @@ typedef struct {
     GhostEntity *ghosts[GHOST_NUMBER];
     int score;
     SDL_Texture *powerPointTexture;
+    GhostState ghostState;
+    // universal ghost textures
+    SDL_Texture *frightenedTexture;
+    SDL_Texture *eatenTexture;
 } Stage;
 
 #endif   // WAKAWAKA_TYPES_H

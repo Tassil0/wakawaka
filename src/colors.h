@@ -5,11 +5,11 @@
 #ifndef WAKAWAKA_COLORS_H
 #define WAKAWAKA_COLORS_H
 
-#define RED         243, 139, 168
-#define PINK        245, 194, 231
-#define TEAL        148, 226, 213
+#define RED         255, 0, 0
+#define PINK        255, 183, 255
+#define TEAL        0, 255, 255
 #define BLUE        137, 180, 250
-#define PEACH       250, 179, 135
+#define PEACH       255, 183, 81
 #define POINT_COLOR 255, 183, 174
 
 #endif   // WAKAWAKA_COLORS_H
