@@ -26,7 +26,7 @@ void handleInput(void) {
     }
 }
 
-void resetKeys(SDL_KeyboardEvent *event) {
+void resetKeys(void) {
     app.keyboard[SDL_SCANCODE_UP] = 0;
     app.keyboard[SDL_SCANCODE_DOWN] = 0;
     app.keyboard[SDL_SCANCODE_LEFT] = 0;
@@ -35,7 +35,7 @@ void resetKeys(SDL_KeyboardEvent *event) {
 
 void handleKeyDown(SDL_KeyboardEvent *event) {
     if (event->repeat == 0 && event->keysym.scancode < MAX_KEYBOARD_KEYS) {
-        resetKeys(event);
+        resetKeys();
         app.keyboard[event->keysym.scancode] = 1;
     }
 }
