@@ -5,7 +5,7 @@
 #ifndef WAKAWAKA_CONFIG_H
 #define WAKAWAKA_CONFIG_H
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define SCREEN_WIDTH  672
 #define SCREEN_HEIGHT 894

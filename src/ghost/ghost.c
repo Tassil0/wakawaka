@@ -16,6 +16,8 @@ extern Stage stage;
 
 static int allStartX[4] = {13, 12, 14, 15};
 static int allStartY[4] = {11, 14, 14, 14};
+static int scatterTargetsX[4] = {26, 2, 27, 0};
+static int scatterTargetsY[4] = {-1, -1, 31, 31};
 static const char *textures[4] = {
     "assets/blinky.png",
     "assets/pinky.png",
@@ -51,6 +53,8 @@ static GhostEntity *initGhost(int startX, int startY, const char *texture) {
 
     ghost->target.x = 12;
     ghost->target.y = 23;
+
+    ghost->sinceHome = 0;
 
     ghost->texture = loadTexture(texture);
 
@@ -101,19 +105,21 @@ void initGhosts(void) {
 }
 
 void updateTargets(int x, int y) {
-    stage.ghosts[0]->target = stage.player->gridPos;
-    stage.ghosts[1]->target.x = stage.player->gridPos.x + x;
-    stage.ghosts[1]->target.y = stage.player->gridPos.y + y;
+    if (!stage.ghosts[0]->eaten)
+        stage.ghosts[0]->target = stage.player->gridPos;
+    if (!stage.ghosts[1]->eaten) {
+        stage.ghosts[1]->target.x = stage.player->gridPos.x + x;
+        stage.ghosts[1]->target.y = stage.player->gridPos.y + y;
+    }
     if (stage.ghostState == SCATTER) {
-        stage.ghosts[0]->target = (SDL_Point){.x = 26, .y = -1};
-        stage.ghosts[1]->target = (SDL_Point){.x = 2, .y = -1};
-        stage.ghosts[2]->target = (SDL_Point){.x = 27, .y = 31};
-        stage.ghosts[3]->target = (SDL_Point){.x = 0, .y = 31};
+        for (int i = 0; i < GHOST_NUMBER; i++)
+            stage.ghosts[i]->target =
+                (SDL_Point){.x = scatterTargetsX[i], .y = scatterTargetsY[i]};
     }
 }
 
 void updateInkyTarget(int x, int y) {
-    if (stage.ghostState == CHASE) {
+    if (stage.ghostState == CHASE && !stage.ghosts[2]->eaten) {
         stage.ghosts[2]->target = findInkyTarget(stage.player->gridPos.x + x,
                                                  stage.player->gridPos.y + y,
                                                  stage.ghosts[0]->gridPos);
@@ -121,8 +127,10 @@ void updateInkyTarget(int x, int y) {
 }
 
 void updateClydeTarget(void) {
-    if (SDL_HasIntersection(&stage.ghosts[3]->hitbox, &stage.player->clydeRect))
+    if (SDL_HasIntersection(&stage.ghosts[3]->hitbox,
+                            &stage.player->clydeRect) &&
+        stage.ghostState == CHASE && !stage.ghosts[3]->eaten)
         stage.ghosts[3]->target = (SDL_Point){.x = 0, .y = 31};
-    else
+    else if (!stage.ghosts[3]->eaten)
         stage.ghosts[3]->target = stage.player->gridPos;
 }

@@ -61,6 +61,7 @@ typedef struct {
     SDL_Rect rect;
     // when clyde is in this rectangle he will switch to scatter mode
     SDL_Rect clydeRect;
+    u8 lives;
     SDL_Texture *texture;
     Animation animation;
 } PlayerEntity;
@@ -76,6 +77,7 @@ typedef struct {
     enum Directions currMove;
     SDL_Point target;
     bool eaten;
+    u32 sinceHome;   // time since in home
     SDL_Texture *texture;
     SDL_Point texturePos;
     Animation animation;
@@ -101,6 +103,8 @@ typedef struct {
     int score;
     SDL_Texture *powerPointTexture;
     GhostState ghostState;
+    SDL_Rect ghostHome;
+    u32 sinceFright;   // time since in fright mode
     // universal ghost textures
     SDL_Texture *frightenedTexture;
     SDL_Texture *eatenTexture;

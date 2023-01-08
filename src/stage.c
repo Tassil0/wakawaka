@@ -41,6 +41,8 @@ static void handleGhosts(void);
 
 static void renderHUD(void);
 
+static bool checkHome(int i);
+
 static PlayerEntity *player;
 static Map *map;
 // we want pacmam to start centered
@@ -72,6 +74,7 @@ void initStage(void) {
     initMap();
     stage.score = 0;
     initUniversalTextures();
+    stage.ghostHome = (SDL_Rect){258, 392, 160, 90};
 
     initFonts();
 }
@@ -87,6 +90,7 @@ static void initPlayer(void) {
     memset(player, 0, sizeof(PlayerEntity));
     stage.player = player;
     startMove = true;
+    player->lives = 4;
 
     player->w = PLAYER_SIZE;
     player->h = PLAYER_SIZE;
@@ -162,9 +166,12 @@ static void checkCollisions(void) {
         if (SDL_HasIntersection(&ghosts[i]->hitbox, &player->rect)) {
             if (stage.ghostState == FRIGHT)
                 ghosts[i]->eaten = true;
-            else
-                printf("you dead man\n");
-            // pacman dead
+            else {
+                player->currMove = UNDF;
+                player->nextMove = UNDF;
+                for (int j = 0; j < GHOST_NUMBER; j++)
+                    ghosts[j]->currMove = UNDF;
+            }
         }
     }
 }
@@ -175,7 +182,18 @@ static void logic(void) {
     checkCollisions();
 }
 
-static int checkGridPos(int x, int y) { return !map->data[map->width * y + x]; }
+// static int checkGridPos(int x, int y) { return !map->data[map->width * y +
+// x]; }
+static int checkGridPos(int ghID, int x, int y) {
+    // if gate and inside home => go through
+    if (ghID != -1 &&
+        ((x == map->gate[0].x && y == map->gate[0].y) ||
+         (x == map->gate[1].x && y == map->gate[1].y)) &&
+        checkHome(ghID)) {
+        return 1;
+    }
+    return !map->data[map->width * y + x];
+}
 
 static bool checkTileCenter(SDL_Point *entityCenter) {
     return (entityCenter->x - (TILE_SIZE / 2)) % TILE_SIZE == 0 &&
@@ -190,6 +208,8 @@ static void checkPoints(void) {
     } else if (*tile == 2) {
         stage.score += 50;
         *tile = 0;
+        stage.ghostState = FRIGHT;
+        stage.sinceFright = stage.ticks;
     }
 }
 
@@ -275,7 +295,8 @@ static void handlePlayer(void) {
             // pokud se liší pacman se nezastaví před stenou
             switch (player->nextMove) {
             case LEFT:
-                if (checkGridPos(player->gridPos.x - 1, player->gridPos.y)) {
+                if (checkGridPos(-1, player->gridPos.x - 1,
+                                 player->gridPos.y)) {
                     player->currMove = player->nextMove;
                 } else if (player->nextMove == player->currMove) {
                     player->currMove = UNDF;
@@ -286,7 +307,8 @@ static void handlePlayer(void) {
                 }
                 break;
             case DOWN:
-                if (checkGridPos(player->gridPos.x, player->gridPos.y + 1)) {
+                if (checkGridPos(-1, player->gridPos.x,
+                                 player->gridPos.y + 1)) {
                     player->currMove = player->nextMove;
                 } else if (player->nextMove == player->currMove) {
                     player->currMove = UNDF;
@@ -297,7 +319,8 @@ static void handlePlayer(void) {
                 }
                 break;
             case UP:
-                if (checkGridPos(player->gridPos.x, player->gridPos.y - 1)) {
+                if (checkGridPos(-1, player->gridPos.x,
+                                 player->gridPos.y - 1)) {
                     player->currMove = player->nextMove;
                 } else if (player->nextMove == player->currMove) {
                     player->currMove = UNDF;
@@ -308,7 +331,8 @@ static void handlePlayer(void) {
                 }
                 break;
             case RIGHT:
-                if (checkGridPos(player->gridPos.x + 1, player->gridPos.y)) {
+                if (checkGridPos(-1, player->gridPos.x + 1,
+                                 player->gridPos.y)) {
                     player->currMove = player->nextMove;
                 } else if (player->nextMove == player->currMove) {
                     player->currMove = UNDF;
@@ -370,7 +394,6 @@ static void handlePlayer(void) {
 //   2
 // 0 X 3
 //   1
-// yeah not pretty but fuck you
 // TODO: move this somewhere else
 static void getTilesAround(SDL_Point *tiles, SDL_Point target) {
     tiles[0].x = target.x - 1;
@@ -389,7 +412,7 @@ static int getDistance(SDL_Point a, SDL_Point b) {
     return (int) sqrt(x + y);
 }
 
-static enum Directions checkTiles(SDL_Point *tiles, SDL_Point target,
+static enum Directions checkTiles(int ghID, SDL_Point *tiles, SDL_Point target,
                                   int turnAround) {
     int minDist = 100;
     enum Directions res = UNDF;
@@ -398,7 +421,7 @@ static enum Directions checkTiles(SDL_Point *tiles, SDL_Point target,
             continue;
         }
         int dist = getDistance(tiles[i], target);
-        if (checkGridPos(tiles[i].x, tiles[i].y) && minDist >= dist) {
+        if (checkGridPos(ghID, tiles[i].x, tiles[i].y) && minDist >= dist) {
             minDist = dist;
             res = (enum Directions) i;
         }
@@ -431,6 +454,30 @@ static void doRightPortalG(int i) {
     ghosts[i]->hitbox.y = ghosts[i]->texturePos.y;
 }
 
+static bool isInFrontOfGate(SDL_Point gridPos) {
+    if ((gridPos.x == map->gate[0].x && gridPos.y == map->gate[0].y - 1) ||
+        (gridPos.x == map->gate[1].x && gridPos.y == map->gate[1].y - 1))
+        return true;
+    return false;
+}
+
+static bool checkHome(int i) {
+    if (SDL_HasIntersection(&stage.ghostHome, &ghosts[i]->hitbox))
+        return true;
+    return false;
+}
+
+static void moveToHome(int i) {
+    ghosts[i]->gridPos.y += 2;
+    // ghosts[i]->pos.x -= 1;
+    ghosts[i]->pos.y += 2 * TILE_SIZE;
+    // ghosts[i]->texturePos.x -= 1;
+    ghosts[i]->texturePos.y += 2 * TILE_SIZE;
+    // ghosts[i]->hitbox.x = ghosts[i]->texturePos.x;
+    ghosts[i]->hitbox.y = ghosts[i]->texturePos.y;
+    ghosts[i]->currMove = UNDF;
+}
+
 static void chaseTarget(int i) {
     // decide next big brain move 🧠
     SDL_Point tilesAround[4];
@@ -442,8 +489,13 @@ static void chaseTarget(int i) {
             doLeftPortalG(i);
             return;
         }
+        // if eaten and in front of gate go through
+        if (ghosts[i]->eaten && isInFrontOfGate(ghosts[i]->gridPos)) {
+            moveToHome(i);
+            return;
+        }
         getTilesAround(tilesAround, ghosts[i]->gridPos);
-        ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 3);
+        ghosts[i]->currMove = checkTiles(i, tilesAround, ghosts[i]->target, 3);
         if (i == 0)   // on blinky movement update inky target
             updateInkyTarget(-2, 0);
         else if (i == 3)
@@ -451,8 +503,13 @@ static void chaseTarget(int i) {
         break;
     case DOWN:
         ghosts[i]->gridPos.y++;
+        // if eaten and in front of gate go through
+        if (ghosts[i]->eaten && isInFrontOfGate(ghosts[i]->gridPos)) {
+            moveToHome(i);
+            return;
+        }
         getTilesAround(tilesAround, ghosts[i]->gridPos);
-        ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 2);
+        ghosts[i]->currMove = checkTiles(i, tilesAround, ghosts[i]->target, 2);
         if (i == 0)
             updateInkyTarget(0, 2);
         else if (i == 3)
@@ -460,8 +517,13 @@ static void chaseTarget(int i) {
         break;
     case UP:
         ghosts[i]->gridPos.y--;
+        // if eaten and in front of gate go through
+        if (ghosts[i]->eaten && isInFrontOfGate(ghosts[i]->gridPos)) {
+            moveToHome(i);
+            return;
+        }
         getTilesAround(tilesAround, ghosts[i]->gridPos);
-        ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 1);
+        ghosts[i]->currMove = checkTiles(i, tilesAround, ghosts[i]->target, 1);
         if (i == 0)
             updateInkyTarget(-2, -2);
         else if (i == 3)
@@ -474,8 +536,13 @@ static void chaseTarget(int i) {
             doRightPortalG(i);
             return;
         }
+        // if eaten and in front of gate go through
+        if (ghosts[i]->eaten && isInFrontOfGate(ghosts[i]->gridPos)) {
+            moveToHome(i);
+            return;
+        }
         getTilesAround(tilesAround, ghosts[i]->gridPos);
-        ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, i);
+        ghosts[i]->currMove = checkTiles(i, tilesAround, ghosts[i]->target, i);
         if (i == 0)
             updateInkyTarget(2, 0);
         else if (i == 3)
@@ -493,7 +560,7 @@ static enum Directions chooseRngTile(SDL_Point *tiles, int turnAround) {
     for (int i = 0; i < 4; i++) {
         if (i == turnAround)
             continue;
-        if (checkGridPos(tiles[i].x, tiles[i].y)) {
+        if (checkGridPos(-1, tiles[i].x, tiles[i].y)) {
             possibleDirections[j] = i;
             j++;
         }
@@ -537,6 +604,23 @@ static void getFrightened(int i) {
     case UNDF:
         break;
     }
+    if ((stage.ticks - stage.sinceFright) > 8000) {
+        stage.sinceFright = 0;
+        stage.ghostState = CHASE;
+        // bruh
+        for (int j = 0; j < GHOST_NUMBER; j++)
+            ghosts[j]->eaten = false;
+    }
+}
+
+static void ghostHeal(int i) {
+    if (ghosts[i]->sinceHome == 0)
+        ghosts[i]->sinceHome = stage.ticks;
+    else if ((stage.ticks - ghosts[i]->sinceHome) > 3000) {
+        ghosts[i]->sinceHome = 0;
+        ghosts[i]->eaten = false;
+        ghosts[i]->currMove = UP;
+    }
 }
 
 static void handleGhost(int i) {
@@ -562,10 +646,24 @@ static void handleGhost(int i) {
         break;
     }
 
-    if (stage.ghostState != FRIGHT && checkTileCenter(&ghosts[i]->pos))
-        chaseTarget(i);
-    else if (stage.ghostState == FRIGHT && checkTileCenter(&ghosts[i]->pos))
-        getFrightened(i);
+    if (checkTileCenter(&ghosts[i]->pos)) {
+        // do scatter and chase
+        if (stage.ghostState != FRIGHT)
+            chaseTarget(i);
+        // fright & eaten & inside home
+        else if (stage.ghostState == FRIGHT && ghosts[i]->eaten &&
+                 checkHome(i)) {
+            ghostHeal(i);
+        }
+        // fright & eaten
+        else if (stage.ghostState == FRIGHT && ghosts[i]->eaten) {
+            ghosts[i]->target = (SDL_Point){13, 14};
+            chaseTarget(i);
+        }
+        // fright
+        else if (stage.ghostState == FRIGHT)
+            getFrightened(i);
+    }
 
     // move the ghost
     switch (ghosts[i]->currMove) {
@@ -628,6 +726,9 @@ static void renderPlayer(void) {
         renderRectDiagonals(&player->rect);
         setColor(PEACH, 255);
         renderRectDiagonals(&player->clydeRect);
+        setColor(RED, 255);
+        renderRectDiagonals(&stage.ghostHome);
+        printf("%d %d\n", ghosts[0]->gridPos.x, ghosts[0]->gridPos.y);
     }
 }
 
@@ -644,16 +745,19 @@ static void renderGhosts(void) {
             renderClip(stage.frightenedTexture, &ghosts[i]->animation.clip,
                        ghosts[i]->texturePos.x, ghosts[i]->texturePos.y);
         }
-        renderRectDiagonals(&ghosts[i]->hitbox);
+        if (DEBUG)
+            renderRectDiagonals(&ghosts[i]->hitbox);
     }
-    setColor(RED, 255);
-    renderGridRect(ghosts[0]->target);
-    setColor(PINK, 255);
-    renderGridRect(ghosts[1]->target);
-    setColor(TEAL, 255);
-    renderGridRect(ghosts[2]->target);
-    setColor(PEACH, 255);
-    renderGridRect(ghosts[3]->target);
+    if (DEBUG) {
+        setColor(RED, 255);
+        renderGridRect(ghosts[0]->target);
+        setColor(PINK, 255);
+        renderGridRect(ghosts[1]->target);
+        setColor(TEAL, 255);
+        renderGridRect(ghosts[2]->target);
+        setColor(PEACH, 255);
+        renderGridRect(ghosts[3]->target);
+    }
 }
 
 static void renderGamePoints(void) {
