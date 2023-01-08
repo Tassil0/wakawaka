@@ -66,7 +66,7 @@ void initStage(void) {
     initPlayer();
 
     initGhosts();
-    stage.ghostState = FRIGHT;
+    stage.ghostState = CHASE;
 
     stage.map = map;
     initMap();
@@ -111,6 +111,12 @@ static void initPlayer(void) {
                               .h = TILE_SIZE,
                               .x = PLAYER_START_X * TILE_SIZE + TILE_SIZE / 2,
                               .y = OFFSET_TOP + PLAYER_START_Y * TILE_SIZE + 1};
+
+    player->clydeRect =
+        (SDL_Rect){.w = TILE_SIZE * 16,
+                   .h = TILE_SIZE * 16,
+                   .x = PLAYER_START_X * TILE_SIZE - TILE_SIZE * 7,
+                   .y = PLAYER_START_Y * TILE_SIZE - TILE_SIZE * 4};
 
     player->texture = loadTexture("assets/player.png");
 
@@ -326,24 +332,28 @@ static void handlePlayer(void) {
             player->x -= PLAYER_SPEED;
             player->center.x -= PLAYER_SPEED;
             player->rect.x -= PLAYER_SPEED;
+            player->clydeRect.x -= PLAYER_SPEED;
             player->animation.clip = player->animation.leftClips[idx];
             break;
         case DOWN:
             player->y += PLAYER_SPEED;
             player->center.y += PLAYER_SPEED;
             player->rect.y += PLAYER_SPEED;
+            player->clydeRect.y += PLAYER_SPEED;
             player->animation.clip = player->animation.downClips[idx];
             break;
         case UP:
             player->y -= PLAYER_SPEED;
             player->center.y -= PLAYER_SPEED;
             player->rect.y -= PLAYER_SPEED;
+            player->clydeRect.y -= PLAYER_SPEED;
             player->animation.clip = player->animation.upClips[idx];
             break;
         case RIGHT:
             player->x += PLAYER_SPEED;
             player->center.x += PLAYER_SPEED;
             player->rect.x += PLAYER_SPEED;
+            player->clydeRect.x += PLAYER_SPEED;
             player->animation.clip = player->animation.rightClips[idx];
             break;
         case UNDF:
@@ -434,8 +444,10 @@ static void chaseTarget(int i) {
         }
         getTilesAround(tilesAround, ghosts[i]->gridPos);
         ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 3);
-        if (i == 0)
+        if (i == 0)   // on blinky movement update inky target
             updateInkyTarget(-2, 0);
+        else if (i == 3)
+            updateClydeTarget();
         break;
     case DOWN:
         ghosts[i]->gridPos.y++;
@@ -443,6 +455,8 @@ static void chaseTarget(int i) {
         ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 2);
         if (i == 0)
             updateInkyTarget(0, 2);
+        else if (i == 3)
+            updateClydeTarget();
         break;
     case UP:
         ghosts[i]->gridPos.y--;
@@ -450,6 +464,8 @@ static void chaseTarget(int i) {
         ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, 1);
         if (i == 0)
             updateInkyTarget(-2, -2);
+        else if (i == 3)
+            updateClydeTarget();
         break;
     case RIGHT:
         ghosts[i]->gridPos.x++;
@@ -462,6 +478,8 @@ static void chaseTarget(int i) {
         ghosts[i]->currMove = checkTiles(tilesAround, ghosts[i]->target, i);
         if (i == 0)
             updateInkyTarget(2, 0);
+        else if (i == 3)
+            updateClydeTarget();
         break;
     case UNDF:
         break;
@@ -607,9 +625,9 @@ static void renderPlayer(void) {
     renderClip(player->texture, &player->animation.clip, player->x, player->y);
     if (DEBUG) {
         setColor(0, 255, 0, 255);
-        // renderGridRect(player->gridPos);
         renderRectDiagonals(&player->rect);
-        // TODO: CREATE CIRCLE :)
+        setColor(PEACH, 255);
+        renderRectDiagonals(&player->clydeRect);
     }
 }
 

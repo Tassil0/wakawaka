@@ -119,3 +119,10 @@ void updateInkyTarget(int x, int y) {
                                                  stage.ghosts[0]->gridPos);
     }
 }
+
+void updateClydeTarget(void) {
+    if (SDL_HasIntersection(&stage.ghosts[3]->hitbox, &stage.player->clydeRect))
+        stage.ghosts[3]->target = (SDL_Point){.x = 0, .y = 31};
+    else
+        stage.ghosts[3]->target = stage.player->gridPos;
+}

@@ -11,5 +11,6 @@ void initGhosts(void);
 void destroyGhost(void);
 void updateTargets(int x, int y);
 void updateInkyTarget(int x, int y);
+void updateClydeTarget(void);
 
 #endif   // WAKAWAKA_GHOST_H

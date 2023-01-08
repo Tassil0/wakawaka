@@ -59,6 +59,8 @@ typedef struct {
     SDL_Point center;
     SDL_Point gridPos;
     SDL_Rect rect;
+    // when clyde is in this rectangle he will switch to scatter mode
+    SDL_Rect clydeRect;
     SDL_Texture *texture;
     Animation animation;
 } PlayerEntity;
